@@ -53,7 +53,7 @@ python3 mqtt-simulator/main.py -f <path/settings.json>
 
     ```json
     {
-        "BROKER_URL": "mqtt.eclipse.org",
+        "BROKER_URL": "127.0.0.1",
         "BROKER_PORT": 1883,
         "TOPICS": [
             ...
