@@ -45,7 +45,7 @@ class TopicAuto(Topic, threading.Thread):
         while True:
             payload = self.generate_data()
             self.old_payload = payload
-            self.client.publish(topic=self.topic_url, payload=json.dumps(payload), qos=1, retain= False) 
+            self.client.publish(topic=self.topic_url, payload=json.dumps(list(payload.values())), qos=1, retain= False) 
             time.sleep(self.time_interval)
 
     def generate_data(self):
@@ -53,17 +53,17 @@ class TopicAuto(Topic, threading.Thread):
 
         timeMS = int(time.time_ns()/1000)
         
-        #if self.old_payload == None:
+        if self.old_payload == None:
             # generate initial data
-        for data in self.topic_data:
-            if data['TYPE'] == 'timestamp':
-                payload[data['NAME']] = hex(timeMS)
-            if data['TYPE'] == 'int':
-                payload[data['NAME']] = round(random.randint(data['MIN_VALUE'], data['MAX_VALUE']),2)
-            elif data['TYPE'] == 'float':
-                payload[data['NAME']] = round(random.uniform(data['MIN_VALUE'], data['MAX_VALUE']),2)
-            elif data['TYPE'] == 'bool':
-                payload[data['NAME']] = random.choice([True, False])
+            for data in self.topic_data:
+                if data['TYPE'] == 'timestamp':
+                    payload[data['NAME']] = timeMS
+                if data['TYPE'] == 'int':
+                    payload[data['NAME']] = round(random.randint(data['MIN_VALUE'], data['MAX_VALUE']),2)
+                elif data['TYPE'] == 'float':
+                    payload[data['NAME']] = round(random.uniform(data['MIN_VALUE'], data['MAX_VALUE']),2)
+                elif data['TYPE'] == 'bool':
+                    payload[data['NAME']] = random.choice([True, False])
 
         else:
              # generate next data
@@ -78,7 +78,6 @@ class TopicAuto(Topic, threading.Thread):
                 else:
                     step = random.uniform(-data['MAX_STEP'], data['MAX_STEP']) 
                     step = round(step) if data['TYPE'] == 'int' else step
-                    payload[data['NAME']] = max(payload[data['NAME']]+step, data['MIN_VALUE']) if step < 0 else min(payload[data['NAME']]+step, data['MAX_VALUE'])
-        
-        payloadSending = list(payload.values())
+                    payload[data['NAME']] = round(max(payload[data['NAME']]+step, data['MIN_VALUE']),2) if step < 0 else round(min(payload[data['NAME']]+step, data['MAX_VALUE']),2)
+                    
         return payload
