@@ -1,0 +1,25 @@
+{
+    "BROKER_URL": "127.0.0.1",
+    "BROKER_PORT": 1883,
+    "TOPICS": [
+        {
+            "TYPE": "single",
+            "PREFIX": "01",
+            "TIME_INTERVAL": 5,
+            "RETAIN_PROBABILITY": 0,
+            "DATA": [
+                {
+                    "NAME": "timestamp",
+                    "TYPE": "timestamp"
+                },
+                {
+                    "NAME": "speed",
+                    "TYPE": "float",
+                    "MIN_VALUE": 50,
+                    "MAX_VALUE": 190,
+                    "MAX_STEP": 20
+                }
+            ]
+        }
+    ]
+}
