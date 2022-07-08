@@ -6,13 +6,17 @@ MQTT simulator written in [Python 3](https://www.python.org/) to simulate the se
 [Getting Started](#getting-started) •
 [Configuration](#configuration) •
 
+Based on [MQTT Simulator](https://github.com/DamascenoRafael/mqtt-simulator)
+
 ## Features
 
 * Small and easy-to-configure simulator for publishing data to a broker  
 * Configuration from a single JSON file  
 * Connection on pre-defined fixed topics  
 * Connection on multiple topics that have a variable id or items at the end  
-* Random variation of data generated according to configuration parameters  
+* Random variation of data generated according to configuration parameters
+* Modified from original repo in order to add the option of generating a timestamp
+* Modified from original repo in order to facilitate sending packets without NAME key
 
 ## Getting Started
 
@@ -109,7 +113,12 @@ python3 mqtt-simulator/main.py -f <path/settings.json>
     | Key | Type | Description | Required |
     | --- | --- | --- | --- |
     | `NAME` | string | JSON property name to be sent | yes |
-    | `TYPE` | string | It can be `"int"`, `"float"` or `"bool"` | yes |
-    | `MIN_VALUE` | number | Minimum value that the property can assume | If `TYPE` is different from `"bool"` |
-    | `MAX_VALUE` | number | Maximum value that the property can assume | If `TYPE` is different from `"bool"` |
-    | `MAX_STEP` | number | Maximum change that can be applied to the property from a published data to the next | If `TYPE` is different from `"bool"` |
+    | `TYPE` | string | It can be `"timestamp"`, `"int"`, `"float"` or `"bool"` | yes |
+    | `MIN_VALUE` | number | Minimum value that the property can assume | If `TYPE` is different from `"bool"` or `"timestamp"` |
+    | `MAX_VALUE` | number | Maximum value that the property can assume | If `TYPE` is different from `"bool"` or `"timestamp"` |
+    | `MAX_STEP` | number | Maximum change that can be applied to the property from a published data to the next | If `TYPE` is different from `"bool"` or `"timestamp"` |
+
+## Authors
+
+[![DamascenoRafael](https://github.com/DamascenoRafael.png?size=70)](https://github.com/DamascenoRafael)
+ [![Maasouza](https://github.com/Maasouza.png?size=70)](https://github.com/Maasouza)
