@@ -6,6 +6,8 @@ MQTT simulator written in [Python 3](https://www.python.org/) to simulate the se
 [Getting Started](#getting-started) •
 [Configuration](#configuration) •
 
+Based on [MQTT Simulator](https://github.com/DamascenoRafael/mqtt-simulator)
+
 ## Features
 
 * Small and easy-to-configure simulator for publishing data to a broker  
