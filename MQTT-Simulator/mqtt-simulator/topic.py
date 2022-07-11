@@ -64,7 +64,6 @@ class TopicAuto(Topic, threading.Thread):
                     payload[data['NAME']] = round(random.uniform(data['MIN_VALUE'], data['MAX_VALUE']), 2)
                 elif data['TYPE'] == 'bool':
                     payload[data['NAME']] = random.choice([True, False])
-
         else:
             # Generate next data.
             payload = self.old_payload
@@ -78,8 +77,10 @@ class TopicAuto(Topic, threading.Thread):
                 else:
                     step = random.uniform(-data['MAX_STEP'], data['MAX_STEP'])
                     step = round(step) if data['TYPE'] == 'int' else step
-                    payload[data['NAME']] = round(max(payload[data['NAME']] + step, data['MIN_VALUE']),
-                                                  2) if step < 0 else round(
-                        min(payload[data['NAME']] + step, data['MAX_VALUE']), 2)
+
+                    if step < 0:
+                        payload[data['NAME']] = round(max(payload[data['NAME']] + step, data['MIN_VALUE']), 2)
+                    else:
+                        payload[data['NAME']] = round(min(payload[data['NAME']] + step, data['MAX_VALUE']), 2)
 
         return payload
