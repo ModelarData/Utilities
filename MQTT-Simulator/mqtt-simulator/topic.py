@@ -5,6 +5,7 @@ import threading
 from abc import ABC, abstractmethod
 import paho.mqtt.client as mqtt
 
+
 class Topic(ABC):
     def __init__(self, broker_url, broker_port, topic_url, topic_data, retain_probability):
         self.broker_url = broker_url
@@ -17,7 +18,7 @@ class Topic(ABC):
     def connect(self):
         self.client = mqtt.Client(self.topic_url, clean_session=True, transport='tcp')
         self.client.on_publish = self.on_publish
-        self.client.connect(self.broker_url, self.broker_port) 
+        self.client.connect(self.broker_url, self.broker_port)
         self.client.loop_start()
 
     @abstractmethod
@@ -35,38 +36,36 @@ class Topic(ABC):
 class TopicAuto(Topic, threading.Thread):
     def __init__(self, broker_url, broker_port, topic_url, topic_data, retain_probability, time_interval):
         Topic.__init__(self, broker_url, broker_port, topic_url, topic_data, retain_probability)
-        threading.Thread.__init__(self, args = (), kwargs = None)
+        threading.Thread.__init__(self, args=(), kwargs=None)
         self.time_interval = time_interval
         self.old_payload = None
-
 
     def run(self):
         self.connect()
         while True:
             payload = self.generate_data()
             self.old_payload = payload
-            self.client.publish(topic=self.topic_url, payload=json.dumps(list(payload.values())), qos=1, retain= False) 
+            self.client.publish(topic=self.topic_url, payload=json.dumps(list(payload.values())), qos=1, retain=False)
             time.sleep(self.time_interval)
 
     def generate_data(self):
         payload = {}
 
-        timeMS = int(time.time_ns()/1000)
-        
-        if self.old_payload == None:
-            # generate initial data
+        timestamp_microseconds = int(time.time_ns() / 1000)
+
+        if self.old_payload is None:
+            # Generate initial data.
             for data in self.topic_data:
                 if data['TYPE'] == 'timestamp':
-                    payload[data['NAME']] = timeMS
+                    payload[data['NAME']] = timestamp_microseconds
                 if data['TYPE'] == 'int':
-                    payload[data['NAME']] = round(random.randint(data['MIN_VALUE'], data['MAX_VALUE']),2)
+                    payload[data['NAME']] = round(random.randint(data['MIN_VALUE'], data['MAX_VALUE']), 2)
                 elif data['TYPE'] == 'float':
-                    payload[data['NAME']] = round(random.uniform(data['MIN_VALUE'], data['MAX_VALUE']),2)
+                    payload[data['NAME']] = round(random.uniform(data['MIN_VALUE'], data['MAX_VALUE']), 2)
                 elif data['TYPE'] == 'bool':
                     payload[data['NAME']] = random.choice([True, False])
-
         else:
-             # generate next data
+            # Generate next data.
             payload = self.old_payload
             for data in self.topic_data:
                 if random.random() > (1 - self.retain_probability):
@@ -74,10 +73,14 @@ class TopicAuto(Topic, threading.Thread):
                 if data['TYPE'] == 'bool':
                     payload[data['NAME']] = not payload[data['NAME']]
                 if data['TYPE'] == 'timestamp':
-                    payload[data['NAME']] = timeMS
+                    payload[data['NAME']] = timestamp_microseconds
                 else:
-                    step = random.uniform(-data['MAX_STEP'], data['MAX_STEP']) 
+                    step = random.uniform(-data['MAX_STEP'], data['MAX_STEP'])
                     step = round(step) if data['TYPE'] == 'int' else step
-                    payload[data['NAME']] = round(max(payload[data['NAME']]+step, data['MIN_VALUE']),2) if step < 0 else round(min(payload[data['NAME']]+step, data['MAX_VALUE']),2)
-                    
+
+                    if step < 0:
+                        payload[data['NAME']] = round(max(payload[data['NAME']] + step, data['MIN_VALUE']), 2)
+                    else:
+                        payload[data['NAME']] = round(min(payload[data['NAME']] + step, data['MAX_VALUE']), 2)
+
         return payload
