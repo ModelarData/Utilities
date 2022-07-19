@@ -51,13 +51,13 @@ class TopicAuto(Topic, threading.Thread):
     def generate_data(self):
         payload = {}
 
-        timestamp_microseconds = int(time.time_ns() / 1000)
+        timestamp_milliseconds = int(time.time() * 1000)
 
         if self.old_payload is None:
             # Generate initial data.
             for data in self.topic_data:
                 if data['TYPE'] == 'timestamp':
-                    payload[data['NAME']] = timestamp_microseconds
+                    payload[data['NAME']] = timestamp_milliseconds
                 if data['TYPE'] == 'int':
                     payload[data['NAME']] = round(random.randint(data['MIN_VALUE'], data['MAX_VALUE']), 2)
                 elif data['TYPE'] == 'float':
@@ -73,7 +73,7 @@ class TopicAuto(Topic, threading.Thread):
                 if data['TYPE'] == 'bool':
                     payload[data['NAME']] = not payload[data['NAME']]
                 if data['TYPE'] == 'timestamp':
-                    payload[data['NAME']] = timestamp_microseconds
+                    payload[data['NAME']] = timestamp_milliseconds
                 else:
                     step = random.uniform(-data['MAX_STEP'], data['MAX_STEP'])
                     step = round(step) if data['TYPE'] == 'int' else step
