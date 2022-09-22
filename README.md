@@ -9,6 +9,9 @@ Utilities for simplifying development and testing:
 - Apache Parquet loading script written in [Python 3](https://www.python.org/)
   to read Apache Parquet files with equivalent schemas, create a model table with a
   matching schema if it does not exists, and load their data into the created table.
+  
+- Arrow Flight testing script written in [Python 3](https://www.python.org/)
+  to test the different endpoints of the ModelarDB Arrow Flight API.
 
 ## License
 Unless otherwise stated, the utilities in this repository are licensed
