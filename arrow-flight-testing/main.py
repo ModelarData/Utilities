@@ -2,7 +2,6 @@ import time
 from random import randrange
 
 import pyarrow
-import pandas as pd
 from pyarrow import flight
 
 
@@ -29,10 +28,8 @@ def create_record_batch(num_rows):
     wind_speed = [float(randrange(50, 100)) for _ in range(num_rows)]
     temperature = [float(randrange(0, 40)) for _ in range(num_rows)]
 
-    df = pd.DataFrame({"location": location, "install_year": install_year, "model": model, "timestamp": timestamp,
-                       "power_output": power_output, "wind_speed": wind_speed, "temperature": temperature})
-
-    return pyarrow.RecordBatch.from_pandas(df=df, schema=get_pyarrow_schema())
+    return pyarrow.RecordBatch.from_arrays([location, install_year, model, timestamp, power_output, wind_speed, temperature],
+                                           schema=get_pyarrow_schema())
 
 
 # PyArrow Function.
@@ -49,8 +46,8 @@ def get_schema(flight_client, table_name):
     print(response.schema)
 
 
-def do_get(flight_client, table_name):
-    ticket = flight.Ticket("SELECT * FROM " + table_name + " LIMIT 5")
+def do_get(flight_client, ticket):
+    ticket = flight.Ticket(ticket)
     response = flight_client.do_get(ticket)
 
     for batch in response:
@@ -92,4 +89,4 @@ if __name__ == '__main__':
     get_schema(flight_client, "test_model_table_1")
 
     do_put(flight_client, "test_model_table_1")
-    do_get(flight_client, "test_model_table_1")
+    do_get(flight_client, "SELECT * FROM test_model_table_1 LIMIT 5")
