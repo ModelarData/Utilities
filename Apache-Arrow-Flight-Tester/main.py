@@ -45,7 +45,7 @@ def create_record_batch(num_rows):
     )
 
 
-# PyArrow Function.
+# PyArrow Functions.
 def list_flights(flight_client):
     response = flight_client.list_flights()
 
