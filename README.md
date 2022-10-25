@@ -6,6 +6,10 @@ Utilities for simplifying development and testing:
   The simulator was originally forked from
   [DamascenoRafael/mqtt-simulator](https://github.com/DamascenoRafael/mqtt-simulator).
 
+- Apache Parquet loading script written in [Python 3](https://www.python.org/)
+  to read Apache Parquet files with equivalent schemas, create a model table with a
+  matching schema if it does not exists, and load their data into the created table.
+
 ## License
 Unless otherwise stated, the utilities in this repository are licensed
 under version 2.0 of the Apache License and a copy of the license is
