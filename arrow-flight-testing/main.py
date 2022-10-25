@@ -6,42 +6,24 @@ import pandas as pd
 from pyarrow import flight
 
 
-def create_table(client, table_name_str):
-    schema = pyarrow.schema([
-        ("timestamps", pyarrow.uint64()),
-        ("values", pyarrow.float32()),
-        ("metadata", pyarrow.float32()),
-    ])
+def create_table_action(client, table_name):
+    action_body = str.encode(
+        "CREATE TABLE " + table_name +
+        "(timestamp TIMESTAMP, values REAL, metadata REAL)")
 
-    table_name = str.encode(table_name_str)
-    table_name_size = len(table_name).to_bytes(2, byteorder="big")
+    action = pyarrow.flight.Action("CommandStatementUpdate", action_body)
+    result = client.do_action(action)
 
-    schema_bytes = schema.serialize()
-    schema_bytes_size = schema_bytes.size.to_bytes(2, byteorder="big")
-
-    action_body = table_name_size + table_name + schema_bytes_size + schema_bytes
-
-    result = client.do_action(pyarrow.flight.Action("CreateTable", action_body))
     print(list(result))
 
 
-def create_model_table(client, table_name_str):
-    table_name = str.encode(table_name_str)
-    table_name_size = len(table_name).to_bytes(2, byteorder="big")
+def create_model_table_action(client, table_name):
+    action_body = str.encode(
+        "CREATE MODEL TABLE " + table_name + "(location TAG, install_year TAG, model TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature FIELD(5))")
 
-    schema_bytes = get_schema().serialize()
-    schema_bytes_size = schema_bytes.size.to_bytes(2, byteorder="big")
+    action = pyarrow.flight.Action("CommandStatementUpdate", action_body)
+    result = client.do_action(action)
 
-    tag_indices = bytes([0, 1, 2])
-    tag_indices_size = len(tag_indices).to_bytes(2, byteorder="big")
-
-    timestamp_index = bytes([3])
-    timestamp_index_size = len(timestamp_index).to_bytes(2, byteorder="big")
-
-    action_body = (table_name_size + table_name + schema_bytes_size + schema_bytes + tag_indices_size + tag_indices
-                   + timestamp_index_size + timestamp_index)
-
-    result = client.do_action(pyarrow.flight.Action("CreateModelTable", action_body))
     print(list(result))
 
 
@@ -50,12 +32,20 @@ def list_actions(client):
     print(list(result))
 
 
-def insert_data(client, table_name):
+def do_put(client, table_name):
     upload_descriptor = pyarrow.flight.FlightDescriptor.for_path(table_name)
-    writer, _ = client.do_put(upload_descriptor, get_schema())
+    writer, _ = client.do_put(upload_descriptor, get_pyarrow_schema())
 
     record_batch = create_record_batch(10000)
     writer.write(record_batch)
+
+
+def do_get(flight_client, table_name):
+    ticket = flight.Ticket("SELECT * FROM " + table_name + " LIMIT 5")
+    response = flight_client.do_get(ticket)
+
+    for batch in response:
+        print(batch)
 
 
 def create_record_batch(num_rows):
@@ -71,17 +61,23 @@ def create_record_batch(num_rows):
     df = pd.DataFrame({"location": location, "install_year": install_year, "model": model, "timestamp": timestamp,
                        "power_output": power_output, "wind_speed": wind_speed, "temperature": temperature})
 
-    return pyarrow.RecordBatch.from_pandas(df=df, schema=get_schema())
+    return pyarrow.RecordBatch.from_pandas(df=df, schema=get_pyarrow_schema())
 
 
-def get_table_schema(client, table_name):
+def list_flights(flight_client):
+    response = flight_client.list_flights()
+
+    print(response)
+
+
+def get_schema(client, table_name):
     upload_descriptor = pyarrow.flight.FlightDescriptor.for_path(table_name)
     response = client.get_schema(upload_descriptor)
 
     print(response.schema)
 
 
-def get_schema():
+def get_pyarrow_schema():
     return pyarrow.schema([
         ("location", pyarrow.utf8()),
         ("install_year", pyarrow.utf8()),
@@ -95,8 +91,14 @@ def get_schema():
 
 if __name__ == '__main__':
     flight_client = flight.FlightClient('grpc://127.0.0.1:9999')
-    # create_table(flight_client, "test_table_1")
-    # create_model_table(flight_client, "test_model_table_1")
-    # list_actions(flight_client)
-    # insert_data(flight_client, "test_model_table_1")
-    # get_table_schema(flight_client, "test_table_1")
+
+    list_actions(flight_client)
+    create_table_action(flight_client, "test_table_1")
+    create_model_table_action(flight_client, "test_model_table_1")
+
+    list_flights(flight_client)
+    get_schema(flight_client, "test_table_1")
+    get_schema(flight_client, "test_model_table_1")
+
+    do_put(flight_client, "test_model_table_1")
+    do_get(flight_client, "test_model_table_1")
