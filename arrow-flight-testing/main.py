@@ -1,4 +1,5 @@
 import time
+import pprint
 from random import randrange
 
 import pyarrow
@@ -7,15 +8,17 @@ from pyarrow import flight
 
 # Helper Functions.
 def get_pyarrow_schema():
-    return pyarrow.schema([
-        ("location", pyarrow.utf8()),
-        ("install_year", pyarrow.utf8()),
-        ("model", pyarrow.utf8()),
-        ("timestamp", pyarrow.timestamp("ms")),
-        ("power_output", pyarrow.float32()),
-        ("wind_speed", pyarrow.float32()),
-        ("temperature", pyarrow.float32()),
-    ])
+    return pyarrow.schema(
+        [
+            ("location", pyarrow.utf8()),
+            ("install_year", pyarrow.utf8()),
+            ("model", pyarrow.utf8()),
+            ("timestamp", pyarrow.timestamp("ms")),
+            ("power_output", pyarrow.float32()),
+            ("wind_speed", pyarrow.float32()),
+            ("temperature", pyarrow.float32()),
+        ]
+    )
 
 
 def create_record_batch(num_rows):
@@ -28,15 +31,25 @@ def create_record_batch(num_rows):
     wind_speed = [float(randrange(50, 100)) for _ in range(num_rows)]
     temperature = [float(randrange(0, 40)) for _ in range(num_rows)]
 
-    return pyarrow.RecordBatch.from_arrays([location, install_year, model, timestamp, power_output, wind_speed, temperature],
-                                           schema=get_pyarrow_schema())
+    return pyarrow.RecordBatch.from_arrays(
+        [
+            location,
+            install_year,
+            model,
+            timestamp,
+            power_output,
+            wind_speed,
+            temperature,
+        ],
+        schema=get_pyarrow_schema(),
+    )
 
 
 # PyArrow Function.
 def list_flights(flight_client):
     response = flight_client.list_flights()
 
-    print(response)
+    print(list(response))
 
 
 def get_schema(flight_client, table_name):
@@ -51,7 +64,7 @@ def do_get(flight_client, ticket):
     response = flight_client.do_get(ticket)
 
     for batch in response:
-        print(batch)
+        pprint.pprint(batch.data.to_pydict())
 
 
 def do_put(flight_client, table_name):
@@ -60,29 +73,40 @@ def do_put(flight_client, table_name):
 
     record_batch = create_record_batch(10000)
     writer.write(record_batch)
+    writer.close()
 
 
 def do_action(flight_client, action_type, action_body_str):
     action_body = str.encode(action_body_str)
     action = pyarrow.flight.Action(action_type, action_body)
-    result = flight_client.do_action(action)
+    response = flight_client.do_action(action)
 
-    print(list(result))
+    print(list(response))
 
 
 def list_actions(flight_client):
-    result = flight_client.list_actions()
+    response = flight_client.list_actions()
 
-    print(list(result))
+    print(list(response))
 
 
 # Main Function.
-if __name__ == '__main__':
-    flight_client = flight.FlightClient('grpc://127.0.0.1:9999')
+if __name__ == "__main__":
+    flight_client = flight.FlightClient("grpc://127.0.0.1:9999")
 
     list_actions(flight_client)
-    do_action(flight_client, "CommandStatementUpdate", "CREATE TABLE test_table_1(timestamp TIMESTAMP, values REAL, metadata REAL)")
-    do_action(flight_client, "CommandStatementUpdate", "CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature FIELD(5))")
+    do_action(
+        flight_client,
+        "CommandStatementUpdate",
+        "CREATE TABLE test_table_1(timestamp TIMESTAMP, values REAL, metadata REAL)",
+    )
+    do_action(
+        flight_client,
+        "CommandStatementUpdate",
+        "CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model"
+        " TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature"
+        " FIELD(5))",
+    )
 
     list_flights(flight_client)
     get_schema(flight_client, "test_table_1")
