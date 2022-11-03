@@ -103,7 +103,10 @@ def start_modelardbd(modelardb_cargo_toml, data_folder):
         stderr=STDERR,
     )
 
-    time.sleep(10)  # Ensure process is fully started.
+    # Ensure process is fully started.
+    while not b"Starting Apache Arrow Flight on" in process.stdout.readline():
+        time.sleep(10)
+
     return process
 
 
@@ -149,8 +152,12 @@ def measure_data_folder_size(data_folder):
 
 
 def send_sigint_to_process(process):
-    os.kill(process.pid, signal.SIGINT)
-    time.sleep(10)  # Ensure process is fully shutdown.
+    process.send_signal(signal.SIGINT)
+
+    # Ensure process is fully shutdown.
+    while process.poll():
+        time.sleep(10)
+    process.wait()
 
 
 def append_finished_result(
