@@ -155,8 +155,9 @@ def send_sigint_to_process(process):
     process.send_signal(signal.SIGINT)
 
     # Ensure process is fully shutdown.
-    while process.poll():
+    while process.poll() is None:
         time.sleep(10)
+
     process.wait()
 
 
