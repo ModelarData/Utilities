@@ -162,7 +162,7 @@ def send_sigint_to_process(process):
 
 
 def append_finished_result(
-        output_file, current_change, changes, ingestion_time, query_time, data_folder_size
+    output_file, current_change, changes, ingestion_time, query_time, data_folder_size
 ):
     results = {
         "changes": changes,
@@ -180,8 +180,8 @@ def append_finished_result(
 
 
 def print_seperator(current_change, last_change):
-        if current_change != last_change:
-            print(100 * "=")
+    if current_change != last_change:
+        print(100 * "=")
 
 
 def finish_output_file_and_kill_process(output_file):
@@ -244,8 +244,7 @@ if __name__ == "__main__":
     for index, changes in enumerate(changes):
         # Print what changes are being evaluating.
         current_change = index + 1
-        print("Evaluating Permutation {} of {}"
-              .format(current_change, last_change))
+        print("Evaluating Permutation {} of {}".format(current_change, last_change))
         print(file_path, start, end)
         print("\n".join(changes))
 
@@ -282,7 +281,12 @@ if __name__ == "__main__":
         # Measure size of data folder in kilobytes.
         data_folder_size = measure_data_folder_size(data_folder)
         append_finished_result(
-            output_file, current_change, changes, ingestion_time, query_time, data_folder_size
+            output_file,
+            current_change,
+            changes,
+            ingestion_time,
+            query_time,
+            data_folder_size,
         )
         temporary_directory.cleanup()
 
