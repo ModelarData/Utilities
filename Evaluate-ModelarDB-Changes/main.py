@@ -71,16 +71,10 @@ def replace_lines(path, start, end, new_lines):
                 f.write(line)
 
 
-def cargo_build_release(modelardb_cargo_toml):
+def cargo_build_release(modelardb_folder):
     process = subprocess.run(
-        [
-            "cargo",
-            "build",
-            "--release",
-            "--bin",
-            "modelardbd",
-            "--manifest-path=" + modelardb_cargo_toml,
-        ],
+        ["cargo", "build", "--release"],
+        cwd=modelardb_folder,
         stdout=STDOUT,
         stderr=STDERR,
     )
@@ -88,17 +82,10 @@ def cargo_build_release(modelardb_cargo_toml):
     return process.returncode == 0
 
 
-def start_modelardbd(modelardb_cargo_toml, data_folder):
+def start_modelardbd(modelardb_folder, data_folder):
     process = subprocess.Popen(
-        [
-            "cargo",
-            "run",
-            "--release",
-            "--bin",
-            "modelardbd",
-            "--manifest-path=" + modelardb_cargo_toml,
-            data_folder,
-        ],
+        ["target/release/modelardbd", data_folder],
+        cwd=modelardb_folder,
         stdout=STDOUT,
         stderr=STDERR,
     )
@@ -110,6 +97,16 @@ def start_modelardbd(modelardb_cargo_toml, data_folder):
     return process
 
 
+def errors_occured(output_stream):
+    normalized = output_stream.lower()
+    return b"error" in normalized or b"panicked" in normalized
+
+
+def print_stream(output_stream):
+    print()
+    print(output_stream.decode("utf-8"))
+
+
 def ingest_test_data(utilities_loader, test_data):
     start_time = time.time()
     process = subprocess.run(
@@ -118,7 +115,8 @@ def ingest_test_data(utilities_loader, test_data):
         stderr=STDERR,
     )
 
-    if b"error" in process.stderr.lower():
+    if errors_occured(process.stderr):
+        print_stream(process.stderr)
         return None
     else:
         return time.time() - start_time
@@ -127,20 +125,14 @@ def ingest_test_data(utilities_loader, test_data):
 def execute_queries(queries):
     start_time = time.time()
     process = subprocess.run(
-        [
-            "cargo",
-            "run",
-            "--release",
-            "--bin",
-            "modelardb",
-            "--manifest-path=" + modelardb_cargo_toml,
-            queries,
-        ],
+        ["target/release/modelardb", queries],
+        cwd=modelardb_folder,
         stdout=STDOUT,
         stderr=STDERR,
     )
 
-    if b"error" in process.stderr.lower():
+    if errors_occured(process.stderr):
+        print_stream(process.stderr)
         return None
     else:
         return time.time() - start_time
@@ -160,22 +152,36 @@ def send_sigint_to_process(process):
 
     process.wait()
 
+    stderr = process.stderr.read()
+    if errors_occured(stderr):
+        print_stream(stderr)
+        return None
+    else:
+        # Indicate no errors occurred.
+        return True
+
 
 def append_finished_result(
-    output_file, changes, ingestion_time, query_time, data_folder_size
+        output_file, current_change, changes, ingestion_time, query_time, data_folder_size
 ):
     results = {
+        "changes": changes,
         "ingestion_time_in_seconds": ingestion_time,
         "query_time_in_seconds": query_time,
         "data_folder_size_in_kib": data_folder_size,
     }
 
     output_file.write('  "')
-    output_file.write(" ".join(changes))
+    output_file.write(str(current_change))
     output_file.write('": ')
     output_file.write(json.dumps(results))
     output_file.write(",\n")
     output_file.flush()
+
+
+def print_seperator(current_change, last_change):
+        if current_change != last_change:
+            print(100 * "=")
 
 
 def finish_output_file_and_kill_process(output_file):
@@ -208,7 +214,6 @@ if __name__ == "__main__":
 
     # Clone repositories.
     modelardb_folder = extract_repository_name(MODELARDB_REPOSITORY)
-    modelardb_cargo_toml = modelardb_folder + "Cargo.toml"
     git_clone(MODELARDB_REPOSITORY)
 
     utilities_folder = extract_repository_name(UTILITIES_REPOSITORY)
@@ -221,6 +226,10 @@ if __name__ == "__main__":
         print("ERROR: file to change does not exist.")
         sys.exit(1)
 
+    # Compute absolute paths.
+    test_data = os.path.abspath(sys.argv[2])
+    queries = os.path.abspath(sys.argv[3])
+
     # Open output file.
     output_file = open(sys.argv[4], "w")
     output_file.write("{\n")
@@ -231,10 +240,12 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, lambda _signal_number, _frame: sys.exit(0))
 
     # Evaluate changes.
-    changes_len = len(changes)
+    last_change = len(changes)
     for index, changes in enumerate(changes):
         # Print what changes are being evaluating.
-        print("Evaluating Permutation {} of {}".format(index + 1, changes_len))
+        current_change = index + 1
+        print("Evaluating Permutation {} of {}"
+              .format(current_change, last_change))
         print(file_path, start, end)
         print("\n".join(changes))
 
@@ -245,30 +256,35 @@ if __name__ == "__main__":
         # Prepare and run new executable.
         git_reset(modelardb_folder)
         replace_lines(file_path, start, end, changes)
-        if not cargo_build_release(modelardb_cargo_toml):
-            print("ERROR: failed to compile ModelarDB.\n")
+        if not cargo_build_release(modelardb_folder):
+            print("ERROR: failed to compile ModelarDB.")
+            print_seperator(current_change, last_change)
             continue
 
         # Measure ingestion time in seconds.
-        modelardbd = start_modelardbd(modelardb_cargo_toml, data_folder)
-        ingestion_time = ingest_test_data(utilities_loader, sys.argv[2])
-        send_sigint_to_process(modelardbd)  # Ensure the data is flushed.
-        if not ingestion_time:
-            print("ERROR: failed to ingest test data.\n")
+        modelardbd = start_modelardbd(modelardb_folder, data_folder)
+        ingestion_time = ingest_test_data(utilities_loader, test_data)
+        success = send_sigint_to_process(modelardbd)  # Ensure data is flushed.
+        if not ingestion_time or not success:
+            print("ERROR: failed to ingest test data.")
+            print_seperator(current_change, last_change)
             continue
 
         # Measure query time in seconds.
-        modelardbd = start_modelardbd(modelardb_cargo_toml, data_folder)
-        query_time = execute_queries(sys.argv[3])
-        send_sigint_to_process(modelardbd)  # Process is no longer needed.
-        if not query_time:
-            print("ERROR: failed to execute queries.\n")
+        modelardbd = start_modelardbd(modelardb_folder, data_folder)
+        query_time = execute_queries(queries)
+        success = send_sigint_to_process(modelardbd)  # Ensure process is gone.
+        if not query_time or not success:
+            print("ERROR: failed to execute queries.")
+            print_seperator(current_change, last_change)
             continue
 
         # Measure size of data folder in kilobytes.
         data_folder_size = measure_data_folder_size(data_folder)
         append_finished_result(
-            output_file, changes, ingestion_time, query_time, data_folder_size
+            output_file, current_change, changes, ingestion_time, query_time, data_folder_size
         )
         temporary_directory.cleanup()
-        print()
+
+        # Print a separator between each evaluation.
+        print_seperator(current_change, last_change)
