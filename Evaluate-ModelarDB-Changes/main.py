@@ -97,7 +97,7 @@ def start_modelardbd(modelardb_folder, data_folder):
     return process
 
 
-def errors_occured(output_stream):
+def errors_occurred(output_stream):
     normalized = output_stream.lower()
     return b"error" in normalized or b"panicked" in normalized
 
@@ -115,7 +115,7 @@ def ingest_test_data(utilities_loader, test_data):
         stderr=STDERR,
     )
 
-    if errors_occured(process.stderr):
+    if errors_occurred(process.stderr):
         print_stream(process.stderr)
         return None
     else:
@@ -131,7 +131,7 @@ def execute_queries(queries):
         stderr=STDERR,
     )
 
-    if errors_occured(process.stderr):
+    if errors_occurred(process.stderr):
         print_stream(process.stderr)
         return None
     else:
@@ -153,7 +153,7 @@ def send_sigint_to_process(process):
     process.wait()
 
     stderr = process.stderr.read()
-    if errors_occured(stderr):
+    if errors_occurred(stderr):
         print_stream(stderr)
         return None
     else:
@@ -179,7 +179,7 @@ def append_finished_result(
     output_file.flush()
 
 
-def print_seperator(current_change, last_change):
+def print_separator(current_change, last_change):
     if current_change != last_change:
         print(100 * "=")
 
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     # Evaluate changes.
     last_change = len(changes)
     for index, changes in enumerate(changes):
-        # Print what changes are being evaluating.
+        # Print what changes are being evaluated.
         current_change = index + 1
         print("Evaluating Permutation {} of {}".format(current_change, last_change))
         print(file_path, start, end)
@@ -257,7 +257,7 @@ if __name__ == "__main__":
         replace_lines(file_path, start, end, changes)
         if not cargo_build_release(modelardb_folder):
             print("ERROR: failed to compile ModelarDB.")
-            print_seperator(current_change, last_change)
+            print_separator(current_change, last_change)
             continue
 
         # Measure ingestion time in seconds.
@@ -266,7 +266,7 @@ if __name__ == "__main__":
         success = send_sigint_to_process(modelardbd)  # Ensure data is flushed.
         if not ingestion_time or not success:
             print("ERROR: failed to ingest test data.")
-            print_seperator(current_change, last_change)
+            print_separator(current_change, last_change)
             continue
 
         # Measure query time in seconds.
@@ -275,7 +275,7 @@ if __name__ == "__main__":
         success = send_sigint_to_process(modelardbd)  # Ensure process is gone.
         if not query_time or not success:
             print("ERROR: failed to execute queries.")
-            print_seperator(current_change, last_change)
+            print_separator(current_change, last_change)
             continue
 
         # Measure size of data folder in kilobytes.
@@ -291,4 +291,4 @@ if __name__ == "__main__":
         temporary_directory.cleanup()
 
         # Print a separator between each evaluation.
-        print_seperator(current_change, last_change)
+        print_separator(current_change, last_change)
