@@ -17,6 +17,10 @@ Utilities for simplifying development and testing:
   script automatically computes and evaluates all possible combinations for the
   set of changes.
 
+- [Git Hooks](Git-Hooks) written in different scripting languages to ensure that
+  the state of a repository is correct before or after a specific action has
+  been performed.
+
 - [MQTT simulator](MQTT-Simulator) written in [Python
   3](https://www.python.org/) to simulate the sending of packets from sensors or
   devices to a broker. The simulator was originally forked from
