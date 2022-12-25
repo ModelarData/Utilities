@@ -2,20 +2,23 @@
 
 # A pre-commit hook that ensures a Rust project contains no errors or warnings.
 
-# Fail if any of the cargo commands fails.
+# Fail the entire script immediately if any of the cargo commands fails.
 set -e
 
-# Ensure that the compiler (cargo build), the linter (cargo clippy), the
-# documentation generator (cargo doc), the unit tests (cargo test), and the
-# integration tests (cargo test) does not emit any errors or warnings.
-echo "cargo build"
+# Ensure the compiler (cargo build), the linters (cargo clippy and cargo
+# machette), the documentation generator (cargo doc), and the unit tests and
+# integration tests (cargo test) does not emit any errors or warnings at all.
+echo "Cargo Build"
 RUSTFLAGS="-D warnings" cargo build
 echo
-echo "cargo clippy"
+echo "Cargo Clippy"
 RUSTFLAGS="-D warnings" cargo clippy
 echo
-echo "cargo doc"
+echo "Cargo Doc"
 RUSTDOCFLAGS="-D warnings" cargo doc
 echo
-echo "cargo test"
+echo "Cargo Machette"
+cargo machete --with-metadata
+echo
+echo "Cargo Test"
 RUSTFLAGS="-D warnings" cargo test
