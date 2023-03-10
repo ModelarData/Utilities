@@ -65,7 +65,7 @@ def do_put_arrow_table(flight_client, table_name, arrow_table):
 
 # Main Function.
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 4:
         print(
             "usage: "
             + sys.argv[0]
