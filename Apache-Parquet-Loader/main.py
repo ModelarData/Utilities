@@ -76,7 +76,7 @@ if __name__ == "__main__":
     flight_client = flight.FlightClient("grpc://" + sys.argv[1])
     table_name = sys.argv[2]
     arrow_table = read_parquet_file_or_folder(sys.argv[3])
-    error_bound = sys.argv[4] if len(sys.argv) > 4 else 0.0
+    error_bound = sys.argv[4] if len(sys.argv) > 4 else "0.0"
 
     if not table_exists(flight_client, table_name):
         create_model_table(flight_client, table_name, arrow_table.schema, error_bound)
