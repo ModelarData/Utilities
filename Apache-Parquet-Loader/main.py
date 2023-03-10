@@ -10,15 +10,14 @@ def table_exists(flight_client, table_name):
     return [bytes(table_name, "UTF-8")] in tables
 
 
-def create_model_table(flight_client, table_name, schema):
+def create_model_table(flight_client, table_name, schema, error_bound):
     # Construct the CREATE MODEL TABLE string.
     columns = []
     for field in schema:
         if field.type == pyarrow.timestamp("ms"):
             columns.append(field.name + " TIMESTAMP")
         elif field.type == pyarrow.float32():
-            # A non-zero error bound can be set as FIELD(error bound).
-            columns.append(field.name + " FIELD")
+            columns.append(field.name + " FIELD(" + error_bound + ")")
         elif field.type == pyarrow.string():
             columns.append(field.name + " TAG")
         else:
@@ -67,14 +66,14 @@ def do_put_arrow_table(flight_client, table_name, arrow_table):
 # Main Function.
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("usage: " + sys.argv[0] + " address table parquet_file_or_folder")
+        print("usage: " + sys.argv[0] + " address table parquet_file_or_folder [error_bound]")
         sys.exit(1)
 
     flight_client = flight.FlightClient("grpc://" + sys.argv[1])
-
-    arrow_table = read_parquet_file_or_folder(sys.argv[3])
-
     table_name = sys.argv[2]
+    arrow_table = read_parquet_file_or_folder(sys.argv[3])
+    error_bound = sys.argv[4] if len(sys.argv) > 4 else 0.0
+
     if not table_exists(flight_client, table_name):
-        create_model_table(flight_client, table_name, arrow_table.schema)
+        create_model_table(flight_client, table_name, arrow_table.schema, error_bound)
     do_put_arrow_table(flight_client, table_name, arrow_table)
