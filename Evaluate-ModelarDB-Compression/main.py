@@ -1,5 +1,4 @@
-""" Script for evaluating ModelarDB with different data sets. """
-
+"""Script for evaluating ModelarDB with different data sets."""
 
 import sys
 import math
@@ -12,7 +11,6 @@ import numpy
 from pyarrow import parquet
 from pyarrow import flight
 
-
 # Configuration.
 MODELARDB_REPOSITORY = "https://github.com/ModelarData/ModelarDB-RS.git"
 UTILITIES_REPOSITORY = "https://github.com/ModelarData/Utilities.git"
@@ -23,6 +21,7 @@ STDERR = subprocess.PIPE
 
 # Helper Functions.
 def extract_repository_name(url):
+    # The plus operator is used instead of an fstring as it was more readable.
     return url[url.rfind("/") + 1 : url.rfind(".")] + "/"
 
 
@@ -93,12 +92,7 @@ def retrieve_schema(flight_client):
 
 def retrieve_ingested_column(flight_client, column_name, timestamp_column):
     ticket = flight.Ticket(
-        "SELECT "
-        + column_name
-        + " FROM "
-        + TABLE_NAME
-        + " ORDER BY "
-        + timestamp_column
+        f"SELECT {column_name} FROM {TABLE_NAME} ORDER BY {timestamp_column}"
     )
     reader = flight_client.do_get(ticket)
     return reader.read_all().column(column_name)
@@ -120,7 +114,7 @@ def compute_and_print_metrics(real_column, compressed_column, error_bound):
     max_actual_error_real_value = 0.0
     max_actual_error_compressed_value = 0.0
 
-    ceiled_actual_errors = math.ceil(error_bound + 2) * [0]
+    ceiled_error_counts = math.ceil(error_bound + 2) * [0]
 
     # Compute metrics.
     for real_value, compressed_value in zip(real_column, compressed_column):
@@ -143,7 +137,7 @@ def compute_and_print_metrics(real_column, compressed_column, error_bound):
             max_actual_error_compressed_value = compressed_value
 
         try:
-            ceiled_actual_errors[math.ceil(actual_error)] += 1
+            ceiled_error_counts[math.ceil(actual_error)] += 1
         except OverflowError:
             print(
                 "ERROR: undefined error due to {} (real) and {} (compressed).".format(
@@ -154,20 +148,16 @@ def compute_and_print_metrics(real_column, compressed_column, error_bound):
             return
 
     # Compute and print the final result.
-    print("- Real Values: {}".format(len(real_column)))
-    print("- Compressed Values: {}".format(len(compressed_column)))
-    print("- Without Error: {}%".format(100 * (equal_values / compared_values)))
-    print("- Average Error: {}%".format(100 * abs(sum_difference / sum_real_values)))
+    print(f"- Real Values: {len(real_column)}")
+    print(f"- Compressed Values: {len(compressed_column)}")
+    print(f"- Without Error: {100 * (equal_values / compared_values)}%")
+    print(f"- Average Error: {100 * abs(sum_difference / sum_real_values)}%")
     print(
-        "- Maximum Error: {}% due to {} (real) and {} (compressed)".format(
-            max_actual_error,
-            max_actual_error_real_value,
-            max_actual_error_compressed_value,
-        )
+        f"- Maximum Error: {max_actual_error}% due to {max_actual_error_real_value} (real) and {max_actual_error_compressed_value} (compressed)"
     )
     print("- Error Ceil Histogram:", end="")
-    for ceiled_error_cound, count in enumerate(ceiled_actual_errors):
-        print(" {}% {} ".format(ceiled_error_cound, count), end="")
+    for ceiled_error_count, count in enumerate(ceiled_error_counts):
+        print(f" {ceiled_error_count}% {count} ", end="")
     print("\n")
 
 
@@ -195,12 +185,12 @@ def send_sigint_to_process(process):
 if __name__ == "__main__":
     # Ensure the necessary arguments are provided.
     if len(sys.argv) < 2:
-        print("usage: " + sys.argv[0] + "test_data.parquet error_bound*")
+        print(f"usage: {sys.argv[0]} test_data.parquet error_bound*")
         sys.exit(1)
 
     # The script assumes it runs on Linux.
     if sys.platform != "linux":
-        print("ERROR: " + sys.argv[0] + " only supports Linux")
+        print(f"ERROR: sys.argv[0] only supports Linux")
         sys.exit(1)
 
     # Clone repositories.
@@ -208,7 +198,7 @@ if __name__ == "__main__":
     git_clone(MODELARDB_REPOSITORY)
 
     utilities_folder = extract_repository_name(UTILITIES_REPOSITORY)
-    utilities_loader = utilities_folder + "Apache-Parquet-Loader/main.py"
+    utilities_loader = f"{utilities_folder}Apache-Parquet-Loader/main.py"
     git_clone(UTILITIES_REPOSITORY)
 
     # Prepare new executable.
@@ -226,7 +216,7 @@ if __name__ == "__main__":
 
         delimiter = (13 + len(error_bound)) * "="
         print(delimiter)
-        print("Error Bound: " + error_bound)
+        print(f"Error Bound: {error_bound}")
         print(delimiter)
 
         # Prepare data folder.
