@@ -190,7 +190,7 @@ if __name__ == "__main__":
 
     # The script assumes it runs on Linux.
     if sys.platform != "linux":
-        print(f"ERROR: sys.argv[0] only supports Linux")
+        print(f"ERROR: {sys.argv[0]} only supports Linux")
         sys.exit(1)
 
     # Clone repositories.
