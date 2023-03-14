@@ -90,6 +90,38 @@ def list_actions(flight_client):
     print(list(response))
 
 
+def update_object_store_to_min_io(flight_client, region, bucket_name, access_key_id, secret_access_key):
+    object_store_type_bytes = str.encode("minio")
+    object_store_type_size = len(object_store_type_bytes).to_bytes(2, byteorder="big")
+
+    region_bytes = str.encode(region)
+    region_size = len(region_bytes).to_bytes(2, byteorder="big")
+
+    bucket_name_bytes = str.encode(bucket_name)
+    bucket_name_size = len(bucket_name_bytes).to_bytes(2, byteorder="big")
+
+    access_key_id_bytes = str.encode(access_key_id)
+    access_key_id_size = len(access_key_id_bytes).to_bytes(2, byteorder="big")
+
+    secret_access_key_bytes = str.encode(secret_access_key)
+    secret_access_key_size = len(secret_access_key_bytes).to_bytes(2, byteorder="big")
+
+    action_body = (object_store_type_size + object_store_type_bytes + region_size + region_bytes + bucket_name_size +
+                   bucket_name_bytes + access_key_id_size + access_key_id_bytes + secret_access_key_size +
+                   secret_access_key_bytes)
+
+    result = flight_client.do_action(pyarrow.flight.Action("UpdateRemoteObjectStore", action_body))
+    print(list(result))
+
+
+def update_object_store_to_azure_blob_storage():
+    pass
+
+
+def delete_object_store():
+    pass
+
+
 # Main Function.
 if __name__ == "__main__":
     flight_client = flight.FlightClient("grpc://127.0.0.1:9999")
