@@ -90,8 +90,8 @@ def list_actions(flight_client):
     print(list(response))
 
 
-def update_object_store_to_min_io(flight_client, region, bucket_name, access_key_id, secret_access_key):
-    object_store_type_bytes = str.encode("minio")
+def update_object_store_to_s3(flight_client, region, bucket_name, access_key_id, secret_access_key):
+    object_store_type_bytes = str.encode("s3")
     object_store_type_size = len(object_store_type_bytes).to_bytes(2, byteorder="big")
 
     region_bytes = str.encode(region)
@@ -114,8 +114,24 @@ def update_object_store_to_min_io(flight_client, region, bucket_name, access_key
     print(list(result))
 
 
-def update_object_store_to_azure_blob_storage():
-    pass
+def update_object_store_to_azure_blob_storage(flight_client, account, access_key, container_name):
+    object_store_type_bytes = str.encode("azureblobstorage")
+    object_store_type_size = len(object_store_type_bytes).to_bytes(2, byteorder="big")
+
+    account_bytes = str.encode(account)
+    account_size = len(account_bytes).to_bytes(2, byteorder="big")
+
+    access_key_bytes = str.encode(access_key)
+    access_key_size = len(access_key_bytes).to_bytes(2, byteorder="big")
+
+    container_name_bytes = str.encode(container_name)
+    container_name_size = len(container_name_bytes).to_bytes(2, byteorder="big")
+
+    action_body = (object_store_type_size + object_store_type_bytes + account_size + account_bytes + access_key_size +
+                   access_key_bytes + container_name_size + container_name_bytes)
+
+    result = flight_client.do_action(pyarrow.flight.Action("UpdateRemoteObjectStore", action_body))
+    print(list(result))
 
 
 def delete_object_store():
