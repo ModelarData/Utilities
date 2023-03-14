@@ -90,11 +90,11 @@ def list_actions(flight_client):
     print(list(response))
 
 
-def update_object_store_to_s3(flight_client, region, bucket_name, access_key_id, secret_access_key):
+def update_object_store_to_s3(flight_client, endpoint, bucket_name, access_key_id, secret_access_key):
     object_store_type_bytes = str.encode("s3")
     object_store_type_size = len(object_store_type_bytes).to_bytes(2, byteorder="big")
 
-    arguments = [region, bucket_name, access_key_id, secret_access_key]
+    arguments = [endpoint, bucket_name, access_key_id, secret_access_key]
     action_body = object_store_type_size + object_store_type_bytes + create_update_object_store_action_body(arguments)
 
     result = flight_client.do_action(pyarrow.flight.Action("UpdateRemoteObjectStore", action_body))
