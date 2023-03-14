@@ -94,23 +94,11 @@ def update_object_store_to_s3(flight_client, region, bucket_name, access_key_id,
     object_store_type_bytes = str.encode("s3")
     object_store_type_size = len(object_store_type_bytes).to_bytes(2, byteorder="big")
 
-    region_bytes = str.encode(region)
-    region_size = len(region_bytes).to_bytes(2, byteorder="big")
-
-    bucket_name_bytes = str.encode(bucket_name)
-    bucket_name_size = len(bucket_name_bytes).to_bytes(2, byteorder="big")
-
-    access_key_id_bytes = str.encode(access_key_id)
-    access_key_id_size = len(access_key_id_bytes).to_bytes(2, byteorder="big")
-
-    secret_access_key_bytes = str.encode(secret_access_key)
-    secret_access_key_size = len(secret_access_key_bytes).to_bytes(2, byteorder="big")
-
-    action_body = (object_store_type_size + object_store_type_bytes + region_size + region_bytes + bucket_name_size +
-                   bucket_name_bytes + access_key_id_size + access_key_id_bytes + secret_access_key_size +
-                   secret_access_key_bytes)
+    arguments = [region, bucket_name, access_key_id, secret_access_key]
+    action_body = object_store_type_size + object_store_type_bytes + create_update_object_store_action_body(arguments)
 
     result = flight_client.do_action(pyarrow.flight.Action("UpdateRemoteObjectStore", action_body))
+
     print(list(result))
 
 
@@ -118,24 +106,24 @@ def update_object_store_to_azure_blob_storage(flight_client, account, access_key
     object_store_type_bytes = str.encode("azureblobstorage")
     object_store_type_size = len(object_store_type_bytes).to_bytes(2, byteorder="big")
 
-    account_bytes = str.encode(account)
-    account_size = len(account_bytes).to_bytes(2, byteorder="big")
-
-    access_key_bytes = str.encode(access_key)
-    access_key_size = len(access_key_bytes).to_bytes(2, byteorder="big")
-
-    container_name_bytes = str.encode(container_name)
-    container_name_size = len(container_name_bytes).to_bytes(2, byteorder="big")
-
-    action_body = (object_store_type_size + object_store_type_bytes + account_size + account_bytes + access_key_size +
-                   access_key_bytes + container_name_size + container_name_bytes)
+    arguments = [account, access_key, container_name]
+    action_body = object_store_type_size + object_store_type_bytes + create_update_object_store_action_body(arguments)
 
     result = flight_client.do_action(pyarrow.flight.Action("UpdateRemoteObjectStore", action_body))
+
     print(list(result))
 
 
-def delete_object_store():
-    pass
+def create_update_object_store_action_body(arguments):
+    action_body = bytes()
+
+    for argument in arguments:
+        argument_bytes = str.encode(argument)
+        argument_size = len(argument_bytes).to_bytes(2, byteorder="big")
+
+        action_body += argument_size + argument_bytes
+
+    return action_body
 
 
 # Main Function.
