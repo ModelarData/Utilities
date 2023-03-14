@@ -105,37 +105,46 @@ def compute_and_print_metrics(real_column, compressed_column, error_bound):
 
     # Initialize variables for computing metrics.
     equal_values = 0
-    compared_values = 0
 
-    sum_difference = 0.0
-    sum_real_values = 0.0
+    sum_absolute_difference = 0.0
+    sum_absolute_real_values = 0.0
 
     max_actual_error = 0.0
     max_actual_error_real_value = 0.0
     max_actual_error_compressed_value = 0.0
 
+    # Initialize an array for a histogram that contains a bucket per integer
+    # error bound. The error bound is incremented by two so the script does not
+    # crash with an out of bounds exceptions if the actual error of a value is
+    # slightly higher than the error bound as the number of values that exceed
+    # the error bound is useful information to have when debugging.
     ceiled_error_counts = math.ceil(error_bound + 2) * [0]
+
+    if len(compressed_column) < len(real_column):
+        print("WARNING: the compressed column is shorter than the real column, assuming it contains the first values of the real column.")
+    elif len(compressed_column) > len(real_column):
+        print("ERROR: the real column is shorter than the compressed column, this should never occur.")
+        return
 
     # Compute metrics.
     for real_value, compressed_value in zip(real_column, compressed_column):
         if real_value == compressed_value:
-            equal_values += 1.0
+            equal_values += 1
             difference = 0.0
             actual_error = 0.0
         else:
             difference = real_value - compressed_value
             actual_error = abs(difference / real_value)
 
-        compared_values += 1
-
-        sum_difference += difference
-        sum_real_values += real_value
+        sum_absolute_difference += abs(difference)
+        sum_absolute_real_values += abs(real_value)
 
         if max_actual_error < actual_error:
             max_actual_error = actual_error
             max_actual_error_real_value = real_value
             max_actual_error_compressed_value = compressed_value
 
+        # math.ceil() raises errors if the input is float specific, e.g., inf.
         try:
             ceiled_error_counts[math.ceil(actual_error)] += 1
         except OverflowError:
@@ -150,8 +159,9 @@ def compute_and_print_metrics(real_column, compressed_column, error_bound):
     # Compute and print the final result.
     print(f"- Real Values: {len(real_column)}")
     print(f"- Compressed Values: {len(compressed_column)}")
-    print(f"- Without Error: {100 * (equal_values / compared_values)}%")
-    print(f"- Average Error: {100 * abs(sum_difference / sum_real_values)}%")
+    print(f"- Without Error: {100 * (equal_values / len(compressed_column))}%")
+    print(f"- Average Relative Error: {100 * (sum_absolute_difference / sum_absolute_real_values)}%")
+    print(f"- Average Absolute Error: {sum_absolute_difference / len(compressed_column)}")
     print(
         f"- Maximum Error: {max_actual_error}% due to {max_actual_error_real_value} (real) and {max_actual_error_compressed_value} (compressed)"
     )
