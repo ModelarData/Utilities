@@ -108,6 +108,7 @@ def compute_and_print_metrics(real_column, compressed_column, error_bound):
 
     sum_absolute_difference = 0.0
     sum_absolute_real_values = 0.0
+    sum_actual_error_for_mape = 0.0
 
     max_actual_error = 0.0
     max_actual_error_real_value = 0.0
@@ -138,6 +139,7 @@ def compute_and_print_metrics(real_column, compressed_column, error_bound):
 
         sum_absolute_difference += abs(difference)
         sum_absolute_real_values += abs(real_value)
+        sum_actual_error_for_mape += actual_error
 
         if max_actual_error < actual_error:
             max_actual_error = actual_error
@@ -161,7 +163,7 @@ def compute_and_print_metrics(real_column, compressed_column, error_bound):
     print(f"- Compressed Values: {len(compressed_column)}")
     print(f"- Without Error: {100 * (equal_values / len(compressed_column))}%")
     print(f"- Average Relative Error: {100 * (sum_absolute_difference / sum_absolute_real_values)}%")
-    print(f"- Average Absolute Error: {sum_absolute_difference / len(compressed_column)}")
+    print(f"- Mean Absolute Percentage Error: {sum_actual_error_for_mape / len(compressed_column)}")
     print(
         f"- Maximum Error: {max_actual_error}% due to {max_actual_error_real_value} (real) and {max_actual_error_compressed_value} (compressed)"
     )
