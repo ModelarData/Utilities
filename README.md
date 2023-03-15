@@ -17,6 +17,13 @@ Utilities for simplifying development and testing:
   script automatically computes and evaluates all possible combinations for the
   set of changes.
 
+- [ModelarDB compression evaluator script](Evaluate-ModelarDB-Compression)
+  written in [Python 3](https://www.python.org/) to evaluate how well
+  [ModelarDB](https://github.com/ModelarData/ModelarDB-RS) compresses a data set
+  stored in Apache Parquet files with the same schema for a set of error bounds.
+  For each error bound the script automatically ingests the data set and
+  computes metrics that indicate how well ModelarDB compressed the data set.
+
 - [Git Hooks](Git-Hooks) written in different scripting languages to ensure that
   the state of a repository is correct before or after a specific action has
   been performed.

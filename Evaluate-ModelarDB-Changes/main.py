@@ -1,5 +1,4 @@
-""" Script for evaluating multiple different changes to ModelarDB. """
-
+"""Script for evaluating multiple different changes to ModelarDB."""
 
 import os
 import sys
@@ -10,7 +9,6 @@ import signal
 import itertools
 import tempfile
 import subprocess
-
 
 # Configuration.
 MODELARDB_REPOSITORY = "https://github.com/ModelarData/ModelarDB-RS.git"
