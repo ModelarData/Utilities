@@ -1,4 +1,5 @@
 import sys
+
 import pyarrow
 from pyarrow import parquet
 from pyarrow import flight
@@ -15,18 +16,18 @@ def create_model_table(flight_client, table_name, schema, error_bound):
     columns = []
     for field in schema:
         if field.type == pyarrow.timestamp("ms"):
-            columns.append(field.name + " TIMESTAMP")
+            columns.append(f"{field.name} TIMESTAMP")
         elif field.type == pyarrow.float32():
-            columns.append(field.name + " FIELD(" + error_bound + ")")
+            columns.append(f"{field.name} FIELD({error_bound})")
         elif field.type == pyarrow.string():
-            columns.append(field.name + " TAG")
+            columns.append(f"{field.name} TAG")
         else:
-            raise ValueError("Unsupported Data Type: " + field.type)
+            raise ValueError(f"Unsupported Data Type: {field.type}")
 
-    sql = "CREATE MODEL TABLE " + table_name + "(" + ", ".join(columns) + ")"
+    sql = f"CREATE MODEL TABLE {table_name} ({', '.join(columns)})"
 
     # Execute the CREATE MODEL TABLE command.
-    action = pyarrow.flight.Action("CommandStatementUpdate", str.encode(sql))
+    action = flight.Action("CommandStatementUpdate", str.encode(sql))
     result = flight_client.do_action(action)
     print(list(result))
 
@@ -57,23 +58,24 @@ def read_parquet_file_or_folder(path):
 
 
 def do_put_arrow_table(flight_client, table_name, arrow_table):
-    upload_descriptor = pyarrow.flight.FlightDescriptor.for_path(table_name)
+    upload_descriptor = flight.FlightDescriptor.for_path(table_name)
     writer, _ = flight_client.do_put(upload_descriptor, arrow_table.schema)
     writer.write(arrow_table)
     writer.close()
+
+    # Flush the data to disk.
+    action = flight.Action("FlushMemory", b"")
+    result = flight_client.do_action(action)
+    print(list(result))
 
 
 # Main Function.
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print(
-            "usage: "
-            + sys.argv[0]
-            + " address table parquet_file_or_folder [error_bound]"
-        )
+        print(f"usage: {sys.argv[0]} host table parquet_file_or_folder [error_bound]")
         sys.exit(1)
 
-    flight_client = flight.FlightClient("grpc://" + sys.argv[1])
+    flight_client = flight.FlightClient(f"grpc://{sys.argv[1]}")
     table_name = sys.argv[2]
     arrow_table = read_parquet_file_or_folder(sys.argv[3])
     error_bound = sys.argv[4] if len(sys.argv) > 4 else "0.0"
