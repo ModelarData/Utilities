@@ -1,6 +1,7 @@
 import time
 import pprint
 from random import randrange
+from typing import Literal
 
 import pyarrow
 from pyarrow import flight
@@ -90,31 +91,22 @@ def list_actions(flight_client):
     print(list(response))
 
 
-def update_object_store_to_s3(flight_client, endpoint, bucket_name, access_key_id, secret_access_key):
-    object_store_type_bytes = str.encode("s3")
-    object_store_type_size = len(object_store_type_bytes).to_bytes(2, byteorder="big")
-
-    arguments = [endpoint, bucket_name, access_key_id, secret_access_key]
-    action_body = object_store_type_size + object_store_type_bytes + create_update_object_store_action_body(arguments)
-
-    result = flight_client.do_action(pyarrow.flight.Action("UpdateRemoteObjectStore", action_body))
-
-    print(list(result))
-
-
-def update_object_store_to_azure_blob_storage(flight_client, account, access_key, container_name):
-    object_store_type_bytes = str.encode("azureblobstorage")
-    object_store_type_size = len(object_store_type_bytes).to_bytes(2, byteorder="big")
-
-    arguments = [account, access_key, container_name]
-    action_body = object_store_type_size + object_store_type_bytes + create_update_object_store_action_body(arguments)
+def update_object_store(flight_client: flight.FlightClient, object_store_type: Literal["s3", "azureblobstorage"],
+                        arguments: list[str]) -> None:
+    """
+    Update the remote object store in the flight client to the given object store type with the given arguments.
+    If `object_store_type` is `s3`, the arguments should be endpoint, bucket name, access key ID, and secret access
+    key. If `object_store_type` is `azureblobstorage`, the arguments should be account, access key, and container name.
+    """
+    arguments.insert(0, object_store_type)
+    action_body = create_update_object_store_action_body(arguments)
 
     result = flight_client.do_action(pyarrow.flight.Action("UpdateRemoteObjectStore", action_body))
 
     print(list(result))
 
 
-def create_update_object_store_action_body(arguments):
+def create_update_object_store_action_body(arguments: list[str]) -> bytes:
     action_body = bytes()
 
     for argument in arguments:
