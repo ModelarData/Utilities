@@ -1,13 +1,16 @@
 #!/bin/sh
 
-# A pre-commit hook that ensures a Rust project contains no errors or warnings.
+# A pre-commit hook that ensures a Rust project with CPython bindings (update
+# line 30 so it cds to the bindings folder) contains no errors or warnings.
 
-# Fail the entire script immediately if any of the cargo commands fails.
+# Fail the entire hook immediately if any of the commands fails.
 set -e
 
-# Ensure the compiler (cargo build), the linters (cargo clippy and cargo
-# machette), the documentation generator (cargo doc), and the unit tests and
-# integration tests (cargo test) does not emit any errors or warnings at all.
+# Ensure the following commands does not emit any errors or warnings.
+# - Compilers: cargo build and python3 -m pip install .
+# - Linters: cargo clippy and cargo machette
+# - Documentation Generator: cargo doc
+# - Unit Tests and Integration Tests: cargo test and python3 -m unittest
 echo "Cargo Build"
 RUSTFLAGS="-D warnings" cargo build --all-targets
 echo
@@ -22,3 +25,10 @@ cargo machete --with-metadata
 echo
 echo "Cargo Test"
 RUSTFLAGS="-D warnings" cargo test --all-targets
+echo
+echo "Python Build"
+cd crates/modelardb_compression_python
+python3 -m pip install .
+echo
+echo "Python Test"
+python3 -m unittest
