@@ -33,6 +33,13 @@ Utilities for simplifying development and testing:
   devices to a broker. The simulator was originally forked from
   [DamascenoRafael/mqtt-simulator](https://github.com/DamascenoRafael/mqtt-simulator).
 
+- [ModelarDB compression profiler script](Profile-ModelarDB-Compression) written
+  in [Python 3](https://www.python.org/) to compute how much storage each part
+  of [ModelarDB](https://github.com/ModelarData/ModelarDB-RS)'s compressed
+  format uses at the logical database, table, and column level when stored in
+  Apache Parquet files ordered by `univariate_id` and `start_time` and
+  compressed using Zstandard.
+
 ## License
 Unless otherwise stated, the utilities in this repository are licensed
 under version 2.0 of the Apache License and a copy of the license is
