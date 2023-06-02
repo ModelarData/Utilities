@@ -24,7 +24,7 @@ echo "Cargo Machette"
 cargo machete --with-metadata
 echo
 echo "Cargo Test"
-RUSTFLAGS="-D warnings" cargo test --all-targets
+RUSTFLAGS="-D warnings" cargo test --all-targets -- --nocapture
 echo
 echo "Python Build"
 cd crates/modelardb_compression_python
