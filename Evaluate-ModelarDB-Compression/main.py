@@ -6,6 +6,7 @@ import time
 import signal
 import tempfile
 import subprocess
+import collections
 
 import numpy
 from pyarrow import parquet
@@ -65,7 +66,7 @@ def print_stream(output_stream):
     print(output_stream.decode("utf-8"))
 
 
-def ingest_test_data(utilities_loader, test_data, error_bound):
+def ingest_test_data(utilities_loader, test_data, error_bound_str):
     process = subprocess.run(
         [
             "python3",
@@ -73,7 +74,7 @@ def ingest_test_data(utilities_loader, test_data, error_bound):
             "127.0.0.1:9999",
             TABLE_NAME,
             test_data,
-            error_bound,
+            error_bound_str,
         ],
         stdout=STDOUT,
         stderr=STDERR,
@@ -90,87 +91,154 @@ def retrieve_schema(flight_client):
     return schema_result.schema
 
 
-def retrieve_ingested_column(flight_client, column_name, timestamp_column):
+def retrieve_ingested_columns(flight_client, timestamp_column_name, field_column_name):
     ticket = flight.Ticket(
-        f"SELECT {column_name} FROM {TABLE_NAME} ORDER BY {timestamp_column}"
+        (
+            f"SELECT {timestamp_column_name}, {field_column_name} "
+            f"FROM {TABLE_NAME} ORDER BY {timestamp_column_name}"
+        )
     )
     reader = flight_client.do_get(ticket)
-    return reader.read_all().column(column_name)
+    return reader.read_all()
 
 
-def compute_and_print_metrics(real_column, compressed_column, error_bound):
+def compute_and_print_metrics(
+    test_data_timestamp_column,
+    test_data_field_column,
+    decompressed_columns,
+    error_bound,
+):
     # Arrays make iteration simpler and float32 match ModelarDB's precision.
-    real_column = real_column.to_numpy().astype(numpy.float32)
-    compressed_column = compressed_column.to_numpy()
+    test_data_timestamp_column = test_data_timestamp_column.to_numpy()
+    test_data_field_column = test_data_field_column.to_numpy().astype(numpy.float32)
+    decompressed_timestamp_column = decompressed_columns[0].to_numpy()
+    decompressed_field_column = decompressed_columns[1].to_numpy()
 
     # Initialize variables for computing metrics.
     equal_values = 0
 
     sum_absolute_difference = 0.0
-    sum_absolute_real_values = 0.0
+    sum_absolute_test_data_values = 0.0
     sum_actual_error_for_mape = 0.0
 
     max_actual_error = 0.0
-    max_actual_error_real_value = 0.0
-    max_actual_error_compressed_value = 0.0
+    max_actual_error_test_data_value = 0.0
+    max_actual_error_decompressed_value = 0.0
 
-    # Initialize an array for a histogram that contains a bucket per integer
-    # error bound. The error bound is incremented by two so the script does not
-    # crash with an out of bounds exceptions if the actual error of a value is
-    # slightly higher than the error bound as the number of values that exceed
-    # the error bound is useful information to have when debugging.
-    ceiled_error_counts = math.ceil(error_bound + 2) * [0]
+    # Initialize a Counter for the actual error of each decompressed value
+    # rounded to the nearest integer so a simple histogram can be printed.
+    ceiled_actual_error_counter = collections.Counter()
 
-    if len(compressed_column) < len(real_column):
-        print("WARNING: the compressed column is shorter than the real column, assuming it contains the first values of the real column.")
-    elif len(compressed_column) > len(real_column):
-        print("ERROR: the real column is shorter than the compressed column, this should never occur.")
+    # Indices of the data points with a value that exceeds the error bound.
+    indices_of_values_above_error_bound = []
+
+    # The length of each pair of timestamp and value columns should always be
+    # equal as this is required by both Apache Parquet files and Apache Arrow
+    # RecordBatches, however, it is checked just to be absolutely sure it is.
+    if len(test_data_timestamp_column) != len(decompressed_timestamp_column) or len(
+        test_data_field_column
+    ) != len(decompressed_field_column):
+        print(
+            (
+                "ERROR: the length of the columns in the test data "
+                f"({len(test_data_timestamp_column)}) and length the decompressed "
+                f"columns ({len(decompressed_timestamp_column)}) are not equal."
+            )
+        )
         return
 
     # Compute metrics.
-    for real_value, compressed_value in zip(real_column, compressed_column):
-        if real_value == compressed_value:
+    for index in range(0, len(test_data_timestamp_column)):
+        test_data_timestamp = test_data_timestamp_column[index]
+        test_data_value = test_data_field_column[index]
+        decompressed_timestamp = decompressed_timestamp_column[index]
+        decompressed_value = decompressed_field_column[index]
+
+        if test_data_timestamp != decompressed_timestamp:
+            print(
+                (
+                    f"ERROR: at index {index}, the timestamp in the test data "
+                    f"({test_data_timestamp}) and the decompressed timestamp "
+                    f"({decompressed_timestamp}) are not equal."
+                )
+            )
+            return
+
+        if test_data_value == decompressed_value:
             equal_values += 1
             difference = 0.0
             actual_error = 0.0
         else:
-            difference = real_value - compressed_value
-            actual_error = abs(difference / real_value)
+            difference = test_data_value - decompressed_value
+            actual_error = abs(difference / test_data_value)
 
         sum_absolute_difference += abs(difference)
-        sum_absolute_real_values += abs(real_value)
+        sum_absolute_test_data_values += abs(test_data_value)
         sum_actual_error_for_mape += actual_error
 
         if max_actual_error < actual_error:
             max_actual_error = actual_error
-            max_actual_error_real_value = real_value
-            max_actual_error_compressed_value = compressed_value
+            max_actual_error_test_data_value = test_data_value
+            max_actual_error_decompressed_value = decompressed_value
 
-        # math.ceil() raises errors if the input is float specific, e.g., inf.
+        # math.ceil() raises errors if it receives one of the special floats:
+        # -inf (OverflowError), inf (OverflowError), and NaN (ValueError).
         try:
-            ceiled_error_counts[math.ceil(actual_error)] += 1
-        except OverflowError:
+            ceiled_actual_error_counter[math.ceil(actual_error)] += 1
+        except (OverflowError, ValueError):
             print(
-                "ERROR: undefined error due to {} (real) and {} (compressed).".format(
-                    real_value, compressed_value
+                (
+                    f"ERROR: undefined error due to {test_data_value} "
+                    f"(test_data) and {decompressed_value} (decompressed)."
                 )
             )
             print()
             return
 
+        if actual_error > error_bound:
+            indices_of_values_above_error_bound.append(index)
+
     # Compute and print the final result.
-    print(f"- Real Values: {len(real_column)}")
-    print(f"- Compressed Values: {len(compressed_column)}")
-    print(f"- Without Error: {100 * (equal_values / len(compressed_column))}%")
-    print(f"- Average Relative Error: {100 * (sum_absolute_difference / sum_absolute_real_values)}%")
-    print(f"- Mean Absolute Percentage Error: {sum_actual_error_for_mape / len(compressed_column)}")
+    print(f"- Total Number of Values: {len(decompressed_field_column)}")
+    print(f"- Without Error: {100 * (equal_values / len(decompressed_field_column))}%")
     print(
-        f"- Maximum Error: {max_actual_error}% due to {max_actual_error_real_value} (real) and {max_actual_error_compressed_value} (compressed)"
+        (
+            "- Average Relative Error: "
+            f"{100 * (sum_absolute_difference / sum_absolute_test_data_values)}%"
+        )
+    )
+    print(
+        (
+            "- Mean Absolute Percentage Error: "
+            f"{sum_actual_error_for_mape / len(decompressed_field_column)}"
+        )
+    )
+    print(
+        (
+            f"- Maximum Error: {max_actual_error}% due to {max_actual_error_test_data_value} "
+            f"(test data) and {max_actual_error_decompressed_value} (decompressed)"
+        )
     )
     print("- Error Ceil Histogram:", end="")
-    for ceiled_error_count, count in enumerate(ceiled_error_counts):
-        print(f" {ceiled_error_count}% {count} ", end="")
-    print("\n")
+    for ceiled_error in range(0, math.ceil(max_actual_error) + 1):
+        print(f" {ceiled_error}% {ceiled_actual_error_counter[ceiled_error]} ", end="")
+    print()
+
+    if indices_of_values_above_error_bound:
+        print(
+            "- Exceeded Error Bound (Timestamp, Test Data Value, Decompressed Value):"
+        )
+
+        for index in indices_of_values_above_error_bound:
+            print(
+                (
+                    f"  {test_data_timestamp_column[index]}, "
+                    f"{test_data_field_column[index]: .10f}, "
+                    f"{decompressed_field_column[index]: .10f}"
+                )
+            )
+
+    print()
 
 
 def measure_data_folder_size_in_kib(data_folder):
@@ -221,14 +289,14 @@ if __name__ == "__main__":
     flight_client = flight.FlightClient("grpc://127.0.0.1:9999")
     for maybe_error_bound in sys.argv[2:]:
         # Prepare error bound.
-        error_bound_float = float(maybe_error_bound)
-        if error_bound_float < 0.0:
-            raise ValueError("Error bound must be positive.")
-        error_bound = maybe_error_bound
+        error_bound = float(maybe_error_bound)
+        if error_bound < 0.0:
+            raise ValueError("Error bound must be a positive normal float.")
+        error_bound_str = maybe_error_bound
 
-        delimiter = (13 + len(error_bound)) * "="
+        delimiter = (13 + len(error_bound_str)) * "="
         print(delimiter)
-        print(f"Error Bound: {error_bound}")
+        print(f"Error Bound: {error_bound_str}")
         print(delimiter)
 
         # Prepare data folder.
@@ -237,7 +305,7 @@ if __name__ == "__main__":
 
         # Ingest the test data.
         modelardbd = start_modelardbd(modelardb_folder, data_folder)
-        failed_ingest = ingest_test_data(utilities_loader, sys.argv[1], error_bound)
+        failed_ingest = ingest_test_data(utilities_loader, sys.argv[1], error_bound_str)
         failed_sigint = send_sigint_to_process(modelardbd)  # Flush.
         if failed_ingest or failed_sigint:
             raise ValueError("Failed to ingest test data.")
@@ -245,27 +313,37 @@ if __name__ == "__main__":
         # Read the test data so metrics can be computed.
         test_data = parquet.read_table(sys.argv[1])
 
-        # Retrieve each column, compute metrics for it, and print them.
+        # Retrieve each field column, compute metrics for it, and print them.
         modelardbd = start_modelardbd(modelardb_folder, data_folder)
         schema = retrieve_schema(flight_client)
-        timestamp_column = list(
+        timestamp_column_name = list(
             filter(lambda nc: nc[1] == "timestamp[ms]", zip(schema.names, schema.types))
         )[0][0]
+        test_data_timestamp_column = test_data.column(timestamp_column_name)
 
         for column_name, column_type in zip(schema.names, schema.types):
             if column_type == "float":
                 print(column_name)
+                field_column_name = column_name
+
                 try:
-                    real_column = test_data.column(column_name)
+                    test_data_field_column = test_data.column(field_column_name)
                 except:
                     # Spaces in the name may have been replaced by underscores.
-                    space_column_name = column_name.replace("_", " ")
-                    real_column = test_data.column(space_column_name)
-                compressed_column = retrieve_ingested_column(
-                    flight_client, column_name, timestamp_column
+                    field_column_name_with_space = field_column_name.replace("_", " ")
+                    test_data_field_column = test_data.column(
+                        field_column_name_with_space
+                    )
+
+                decompressed_columns = retrieve_ingested_columns(
+                    flight_client, timestamp_column_name, field_column_name
                 )
+
                 compute_and_print_metrics(
-                    real_column, compressed_column, error_bound_float
+                    test_data_timestamp_column,
+                    test_data_field_column,
+                    decompressed_columns,
+                    error_bound,
                 )
 
         if send_sigint_to_process(modelardbd):
