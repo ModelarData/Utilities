@@ -51,7 +51,7 @@ def start_modelardbd(modelardb_folder, data_folder):
 
     # Ensure process is fully started.
     while not b"Starting Apache Arrow Flight on" in process.stdout.readline():
-        time.sleep(10)
+        time.sleep(1)
 
     return process
 
@@ -251,7 +251,7 @@ def send_sigint_to_process(process):
 
     # Ensure process is fully shutdown.
     while process.poll() is None:
-        time.sleep(10)
+        time.sleep(1)
 
     process.wait()
 
