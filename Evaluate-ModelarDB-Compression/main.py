@@ -132,6 +132,9 @@ def compute_and_print_metrics(
     # Indices of the data points with a value that exceeds the error bound.
     indices_of_values_above_error_bound = []
 
+    # Indices of the data points with a value that has an undefined error.
+    indices_of_values_with_undefined_error = []
+
     # The length of each pair of timestamp and value columns should always be
     # equal as this is required by both Apache Parquet files and Apache Arrow
     # RecordBatches, however, it is checked just to be absolutely sure it is.
@@ -164,7 +167,8 @@ def compute_and_print_metrics(
             )
             return
 
-        if test_data_value == decompressed_value:
+        if test_data_value == decompressed_value or \
+           (math.isnan(test_data_value) and math.isnan(decompressed_value)):
             equal_values += 1
             difference = 0.0
             actual_error = 0.0
@@ -186,14 +190,8 @@ def compute_and_print_metrics(
         try:
             ceiled_actual_error_counter[math.ceil(actual_error)] += 1
         except (OverflowError, ValueError):
-            print(
-                (
-                    f"ERROR: undefined error due to {test_data_value} "
-                    f"(test_data) and {decompressed_value} (decompressed)."
-                )
-            )
-            print()
-            return
+            ceiled_actual_error_counter["UNDEFINED"] += 1
+            indices_of_values_with_undefined_error.append(index)
 
         if actual_error > error_bound:
             indices_of_values_above_error_bound.append(index)
@@ -222,14 +220,29 @@ def compute_and_print_metrics(
     print("- Error Ceil Histogram:", end="")
     for ceiled_error in range(0, math.ceil(max_actual_error) + 1):
         print(f" {ceiled_error}% {ceiled_actual_error_counter[ceiled_error]} ", end="")
+    if ceiled_actual_error_counter['UNDEFINED'] != 0:
+        print(f" Undefined {ceiled_actual_error_counter['UNDEFINED']}")
+    else:
+        print()
+
+    print_data_points_if_any(
+        "- Exceeded Error Bound (Timestamp, Test Data Value, Decompressed Value):",
+        indices_of_values_above_error_bound, test_data_timestamp_column,
+        test_data_field_column, decompressed_field_column)
+
+    print_data_points_if_any(
+        "- Undefined Actual Error (Timestamp, Test Data Value, Decompressed Value):",
+        indices_of_values_with_undefined_error, test_data_timestamp_column,
+        test_data_field_column, decompressed_field_column)
     print()
 
-    if indices_of_values_above_error_bound:
-        print(
-            "- Exceeded Error Bound (Timestamp, Test Data Value, Decompressed Value):"
-        )
 
-        for index in indices_of_values_above_error_bound:
+def print_data_points_if_any(header, indices, test_data_timestamp_column,
+                             test_data_field_column, decompressed_field_column):
+    if indices:
+        print(header)
+
+        for index in indices:
             print(
                 (
                     f"  {test_data_timestamp_column[index]}, "
@@ -237,8 +250,6 @@ def compute_and_print_metrics(
                     f"{decompressed_field_column[index]: .10f}"
                 )
             )
-
-    print()
 
 
 def measure_data_folder_size_in_kib(data_folder):
