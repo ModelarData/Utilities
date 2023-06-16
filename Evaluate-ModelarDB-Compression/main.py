@@ -119,7 +119,7 @@ def compute_and_print_metrics(
 
     sum_absolute_difference = 0.0
     sum_absolute_test_data_values = 0.0
-    sum_actual_error_for_mape = 0.0
+    sum_actual_error_ratio_for_mape = 0.0
 
     max_actual_error = 0.0
     max_actual_error_test_data_value = 0.0
@@ -138,9 +138,8 @@ def compute_and_print_metrics(
     # The length of each pair of timestamp and value columns should always be
     # equal as this is required by both Apache Parquet files and Apache Arrow
     # RecordBatches, however, it is checked just to be absolutely sure it is.
-    if len(test_data_timestamp_column) != len(decompressed_timestamp_column) or len(
-        test_data_field_column
-    ) != len(decompressed_field_column):
+    if len(test_data_timestamp_column) != len(decompressed_timestamp_column) \
+       or len(test_data_field_column) != len(decompressed_field_column):
         print(
             (
                 "ERROR: the length of the columns in the test data "
@@ -171,14 +170,16 @@ def compute_and_print_metrics(
            (math.isnan(test_data_value) and math.isnan(decompressed_value)):
             equal_values += 1
             difference = 0.0
-            actual_error = 0.0
+            actual_error_ratio = 0.0
         else:
             difference = test_data_value - decompressed_value
-            actual_error = abs(difference / test_data_value)
+            actual_error_ratio = abs(difference / test_data_value)
+
+        actual_error = 100.0 * actual_error_ratio
 
         sum_absolute_difference += abs(difference)
         sum_absolute_test_data_values += abs(test_data_value)
-        sum_actual_error_for_mape += actual_error
+        sum_actual_error_ratio_for_mape += actual_error_ratio
 
         if max_actual_error < actual_error:
             max_actual_error = actual_error
@@ -208,7 +209,7 @@ def compute_and_print_metrics(
     print(
         (
             "- Mean Absolute Percentage Error: "
-            f"{sum_actual_error_for_mape / len(decompressed_field_column)}"
+            f"{100.0 * (sum_actual_error_ratio_for_mape / len(decompressed_field_column))}%"
         )
     )
     print(
@@ -220,6 +221,7 @@ def compute_and_print_metrics(
     print("- Error Ceil Histogram:", end="")
     for ceiled_error in range(0, math.ceil(max_actual_error) + 1):
         print(f" {ceiled_error}% {ceiled_actual_error_counter[ceiled_error]} ", end="")
+
     if ceiled_actual_error_counter['UNDEFINED'] != 0:
         print(f" Undefined {ceiled_actual_error_counter['UNDEFINED']}")
     else:
