@@ -209,7 +209,7 @@ def compute_and_print_metrics(
     print(
         (
             "- Mean Absolute Percentage Error: "
-            f"{sum_actual_error_ratio_for_mape / len(decompressed_field_column)}"
+            f"{100.0 * (sum_actual_error_ratio_for_mape / len(decompressed_field_column))}%"
         )
     )
     print(
