@@ -283,9 +283,9 @@ fn index_of_timestamp_column(schema: &Schema) -> Option<usize> {
     None
 }
 
-/// Compute and print how precisely `decompressed_timestamps` and `decompressed_values` represents
+/// Compute and print how precisely `decompressed_timestamps` and `decompressed_values` represent
 /// `uncompressed_timestamps` and `uncompressed_values`. The timestamp, uncompressed value, and
-/// decompressed value is printed for each data point with a decompressed value that is outside the
+/// decompressed value are printed for each data point with a decompressed value that is outside the
 /// `error_bound` or has an undefined error.
 fn compute_and_print_metrics(
     uncompressed_timestamps: &TimestampMillisecondArray,

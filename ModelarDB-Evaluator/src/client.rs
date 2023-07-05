@@ -31,7 +31,7 @@ use crate::TABLE_NAME;
 const HOST_AND_PORT: &str = "grpc://127.0.0.1:9999";
 
 /// Wrapper for [`FlightClient`] so that ingestion and retrieval of data points can be implemented
-/// as methods instead of as simple functions that explicitly takes a [`FlightClient`] as input.
+/// as methods instead of as simple functions that explicitly take a [`FlightClient`] as input.
 pub struct Client {
     flight_client: FlightClient,
 }
