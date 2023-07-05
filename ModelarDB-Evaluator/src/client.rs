@@ -30,13 +30,13 @@ use crate::TABLE_NAME;
 /// The host and port for the client to connect to.
 const HOST_AND_PORT: &str = "grpc://127.0.0.1:9999";
 
-/// Wrapper for [`FlightClient`] so methods to be added.
+/// Wrapper for [`FlightClient`] so that ingestion and retrieval of data points can be implemented
+/// as methods instead of as simple functions that explicitly takes a [`FlightClient`] as input.
 pub struct Client {
     flight_client: FlightClient,
 }
 
 impl Client {
-
     /// Create [`FlightClient`] that connects to [`HOST_AND_PORT`].
     pub async fn new() -> Result<Self, FlightError> {
         let flight_service_client = FlightServiceClient::connect(HOST_AND_PORT)
@@ -116,12 +116,11 @@ impl Client {
     /// Retrieve the `timestamp_column` and `value_column` in the model table named [`TABLE_NAME`]
     /// from the instance of modelardbd at [`HOST_AND_PORT`]. The returned `RecordBatch` will be
     /// sorted by `timestamp_column` in ascending order.
-    pub async fn retrive_data(
+    pub async fn retrieve_decompressed_data(
         &mut self,
         timestamp_column: &str,
         value_column: &str,
     ) -> Result<RecordBatch, FlightError> {
-        // Execute query.
         let ticket = Ticket {
             ticket: format!(
                 "SELECT {timestamp_column}, {value_column} \
@@ -130,6 +129,7 @@ impl Client {
             .into(),
         };
 
+        // Execute query.
         let query_result: Vec<RecordBatch> = self
             .flight_client
             .do_get(ticket)

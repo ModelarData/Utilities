@@ -45,10 +45,10 @@ const TABLE_NAME: &str = "evaluate";
 const MODELARDB_REPOSITORY: &str = "https://github.com/ModelarData/ModelarDB-RS.git";
 
 /// Integer value for representing [`f64::NEG_INFINITY`] as [`u64`].
-const INTEGER_NEGATIVE_INFINTIY: u64 = u64::MAX - 2;
+const INTEGER_NEGATIVE_INFINITY: u64 = u64::MAX - 2;
 
 /// Integer value for representing [`f64::INFINITY`] as [`u64`].
-const INTEGER_POSITIVE_INFINTIY: u64 = u64::MAX - 1;
+const INTEGER_POSITIVE_INFINITY: u64 = u64::MAX - 1;
 
 /// Integer value for representing [`f64::NAN`] as [`u64`].
 const INTEGER_NAN: u64 = u64::MAX;
@@ -145,7 +145,7 @@ async fn main() -> Result<(), String> {
                     println!("{} - {}", index, field.name());
 
                     let decompressed_data = client
-                        .retrive_data(timestamp_column, field.name())
+                        .retrieve_decompressed_data(timestamp_column, field.name())
                         .await
                         .map_err(|error| error.to_string())?;
 
@@ -206,7 +206,7 @@ fn download_update_and_compile_modelardb() -> Result<(), IOError> {
 
 /// Read the Apache Parquet file at `uncompressed_data_path`, remove columns that contain NULL
 /// values, and ensure that the types used for its columns are types supported by modelardbd.
-/// Returns [`ParquetError`] if the file cannot be read or the data in it normalized.
+/// Returns [`ParquetError`] if the file cannot be read or the data in it cannot normalized.
 fn read_and_normalize_uncompressed_data(
     uncompressed_data_path: &Path,
 ) -> Result<RecordBatch, ParquetError> {
@@ -229,9 +229,9 @@ fn read_and_normalize_uncompressed_data(
     }
 }
 
-/// Normalize `uncompressed_data` by removing columns that contain NULL values and cast columns with
-/// types that are not support by modelardbd to types that are supported by modelardbd. Returns
-/// [`ParquetError`] if `uncompressed_data` cannot be normalized.
+/// Normalize `uncompressed_data` by removing columns that contain NULL values and casting columns
+/// with types that are not supported by modelardbd to types that are supported by modelardbd.
+/// Returns [`ParquetError`] if `uncompressed_data` cannot be normalized.
 fn normalize_uncompressed_data(uncompressed_data: RecordBatch) -> Result<RecordBatch, ArrowError> {
     let schema = uncompressed_data.schema();
 
@@ -270,7 +270,7 @@ fn normalize_uncompressed_data(uncompressed_data: RecordBatch) -> Result<RecordB
     RecordBatch::try_new(Arc::new(Schema::new(fields)), columns)
 }
 
-/// Return the index of first the [`Field`] in `schema` with the type [`DataType::Timestamp`] if one
+/// Return the index of the first [`Field`] in `schema` with the type [`DataType::Timestamp`] if one
 /// exists, otherwise [`None`] is returned.
 fn index_of_timestamp_column(schema: &Schema) -> Option<usize> {
     let fields = schema.fields();
@@ -285,7 +285,7 @@ fn index_of_timestamp_column(schema: &Schema) -> Option<usize> {
 
 /// Compute and print how precisely `decompressed_timestamps` and `decompressed_values` represents
 /// `uncompressed_timestamps` and `uncompressed_values`. The timestamp, uncompressed value, and
-/// decompressed value is printed for each data point with a decompressed value that are outside the
+/// decompressed value is printed for each data point with a decompressed value that is outside the
 /// `error_bound` or has an undefined error.
 fn compute_and_print_metrics(
     uncompressed_timestamps: &TimestampMillisecondArray,
@@ -336,7 +336,7 @@ fn compute_and_print_metrics(
 
         if uncompressed_timestamp != decompressed_timestamp {
             println!(
-                "ERROR: at index {}, the uncompressed timestamp ({}) are not equal to the decompressed \
+                "ERROR: at index {}, the uncompressed timestamp ({}) is not equal to the decompressed \
                  timestamp ({}).", index, uncompressed_timestamp, decompressed_timestamp
             );
 
@@ -368,10 +368,10 @@ fn compute_and_print_metrics(
         let ceiled_actual_error = actual_error.ceil();
         let integer_ceiled_actual_error = if ceiled_actual_error == f32::NEG_INFINITY {
             indices_of_values_with_undefined_error.push(index);
-            INTEGER_NEGATIVE_INFINTIY
+            INTEGER_NEGATIVE_INFINITY
         } else if ceiled_actual_error == f32::INFINITY {
             indices_of_values_with_undefined_error.push(index);
-            INTEGER_POSITIVE_INFINTIY
+            INTEGER_POSITIVE_INFINITY
         } else if ceiled_actual_error.is_nan() {
             indices_of_values_with_undefined_error.push(index);
             INTEGER_NAN
@@ -417,8 +417,8 @@ fn compute_and_print_metrics(
     print!("- Error Ceil Histogram:");
     for (integer_ceiled_actual_error, count) in ceiled_actual_error_counter {
         let ceiled_actual_error = match integer_ceiled_actual_error {
-            INTEGER_NEGATIVE_INFINTIY => f32::NEG_INFINITY,
-            INTEGER_POSITIVE_INFINTIY => f32::INFINITY,
+            INTEGER_NEGATIVE_INFINITY => f32::NEG_INFINITY,
+            INTEGER_POSITIVE_INFINITY => f32::INFINITY,
             INTEGER_NAN => f32::NAN,
             value => value as f32,
         };
