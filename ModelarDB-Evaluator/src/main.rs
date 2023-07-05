@@ -206,7 +206,7 @@ fn download_update_and_compile_modelardb() -> Result<(), IOError> {
 
 /// Read the Apache Parquet file at `uncompressed_data_path`, remove columns that contain NULL
 /// values, and ensure that the types used for its columns are types supported by modelardbd.
-/// Returns [`ParquetError`] if the file cannot be read or the data in it cannot normalized.
+/// Returns [`ParquetError`] if the file cannot be read or the data in it cannot be normalized.
 fn read_and_normalize_uncompressed_data(
     uncompressed_data_path: &Path,
 ) -> Result<RecordBatch, ParquetError> {
