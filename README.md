@@ -28,6 +28,13 @@ Utilities for simplifying development and testing:
   the state of a repository is correct before or after a specific action has
   been performed.
 
+- [ModelarDB evaluator](ModelarDB-Evaluator) written in
+  [Rust](https://www.rust-lang.org/) to evaluate how well
+  [ModelarDB](https://github.com/ModelarData/ModelarDB-RS) compresses a data set
+  stored in Apache Parquet files with the same schema for a set of error bounds.
+  For each error bound the script automatically ingests the data set and
+  computes metrics that indicate how well ModelarDB compressed the data set.
+
 - [MQTT simulator](MQTT-Simulator) written in [Python
   3](https://www.python.org/) to simulate the sending of packets from sensors or
   devices to a broker. The simulator was originally forked from
