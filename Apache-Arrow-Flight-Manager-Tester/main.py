@@ -1,4 +1,4 @@
-from pyarrow import flight
+from pyarrow import flight, Schema
 from pyarrow._flight import FlightInfo, FlightClient, ActionType
 
 
@@ -7,6 +7,13 @@ def list_flights(flight_client: FlightClient) -> list[FlightInfo]:
     response = flight_client.list_flights()
 
     return list(response)
+
+
+def get_schema(flight_client: FlightClient, table_name: str) -> Schema:
+    upload_descriptor = flight.FlightDescriptor.for_path(table_name)
+    response = flight_client.get_schema(upload_descriptor)
+
+    return response.schema
 
 
 def do_action(flight_client: FlightClient, action_type: str, action_body: str) -> list[any]:
@@ -35,3 +42,6 @@ if __name__ == "__main__":
 
     print(list_actions(manager_client))
     print(list_table_names(manager_client))
+
+    print(get_schema(manager_client, "test_table_1"))
+    print(get_schema(manager_client, "test_model_table_1"))
