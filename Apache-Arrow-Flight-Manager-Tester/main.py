@@ -37,6 +37,13 @@ def list_table_names(flight_client: FlightClient) -> list[str]:
     return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
 
+def initialize_database(flight_client: FlightClient, tables: list[str]) -> list[str]:
+    result = do_action(flight_client, "InitializeDatabase", ",".join(tables))[0]
+    decoded_result = result.body.to_pybytes().decode("utf-8")
+
+    return decoded_result.split(";")
+
+
 if __name__ == "__main__":
     manager_client = flight.FlightClient("grpc://127.0.0.1:8888")
 
@@ -45,3 +52,5 @@ if __name__ == "__main__":
 
     print(get_schema(manager_client, "test_table_1"))
     print(get_schema(manager_client, "test_model_table_1"))
+
+    print(initialize_database(manager_client, ["test_model_table_1", "test_table_1"]))
