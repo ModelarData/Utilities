@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pyarrow import flight, Schema
 from pyarrow._flight import FlightInfo, FlightClient, ActionType
 
@@ -42,6 +44,33 @@ def initialize_database(flight_client: FlightClient, tables: list[str]) -> list[
     decoded_result = result.body.to_pybytes().decode("utf-8")
 
     return decoded_result.split(";")
+
+
+def update_object_store(flight_client: flight.FlightClient, object_store_type: Literal["s3", "azureblobstorage"],
+                        arguments: list[str]) -> list[any]:
+    """
+    Update the remote object store in the flight client to the given object store type with the given arguments.
+    If `object_store_type` is `s3`, the arguments should be endpoint, bucket name, access key ID, and secret access
+    key. If `object_store_type` is `azureblobstorage`, the arguments should be account, access key, and container name.
+    """
+    arguments.insert(0, object_store_type)
+    action_body = create_update_object_store_action_body(arguments)
+
+    result = flight_client.do_action(flight.Action("UpdateRemoteObjectStore", action_body))
+
+    return list(result)
+
+
+def create_update_object_store_action_body(arguments: list[str]) -> bytes:
+    action_body = bytes()
+
+    for argument in arguments:
+        argument_bytes = str.encode(argument)
+        argument_size = len(argument_bytes).to_bytes(2, byteorder="big")
+
+        action_body += argument_size + argument_bytes
+
+    return action_body
 
 
 if __name__ == "__main__":
