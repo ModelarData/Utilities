@@ -6,29 +6,37 @@
 # Fail the entire hook immediately if any of the commands fails.
 set -e
 
+# Set the profiles to use for all of the cargo-based tools that supports it.
+profiles="dev release"
+
 # Ensure the following commands does not emit any errors or warnings.
 # - Compilers: cargo build and python3 -m pip install .
 # - Linters: cargo clippy and cargo machette
 # - Documentation Generator: cargo doc
 # - Unit Tests and Integration Tests: cargo test and python3 -m unittest
-echo "Cargo Build"
-RUSTFLAGS="-D warnings" cargo build --all-targets
-echo
-echo "Cargo Clippy"
-RUSTFLAGS="-D warnings" cargo clippy --all-targets
-echo
-echo "Cargo Doc"
-RUSTDOCFLAGS="-D warnings" cargo doc
-echo
-echo "Cargo Machette"
-cargo machete --with-metadata
-echo
-echo "Cargo Test"
-RUSTFLAGS="-D warnings" cargo test --all-targets -- --nocapture
-echo
-echo "Python Build"
-cd crates/modelardb_compression_python
-python3 -m pip install .
-echo
-echo "Python Test"
-python3 -m unittest
+for profile in $profiles
+do
+    echo "Profile $profile"
+    echo "Cargo Build"
+    RUSTFLAGS="-D warnings" cargo build --profile $profile --all-targets
+    echo
+    echo "Cargo Clippy"
+    RUSTFLAGS="-D warnings" cargo clippy --profile $profile --all-targets
+    echo
+    echo "Cargo Doc"
+    RUSTDOCFLAGS="-D warnings" cargo doc --profile $profile
+    echo
+    echo "Cargo Machette"
+    cargo machete --with-metadata
+    echo
+    echo "Cargo Test"
+    RUSTFLAGS="-D warnings" cargo test --profile $profile --all-targets -- --nocapture
+    echo
+    echo "Python Build"
+    pushd crates/modelardb_compression_python > /dev/null
+    python3 -m pip install . --break-system-packages
+    echo
+    echo "Python Test"
+    python3 -m unittest
+    popd > /dev/null
+done
