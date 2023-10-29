@@ -53,7 +53,8 @@ def compute_size_of_table_in_bytes_when_stored_as_parquet(table):
     temporary_file = tempfile.NamedTemporaryFile()
 
     # Zstandard is used for compression to more closely match modelardbd.
-    parquet.write_table(table, temporary_file, compression="zstd")
+    parquet.write_table(table, temporary_file, use_dictionary=False,
+                        compression="zstd", write_statistics=False)
     temporary_file.flush()
     return path.getsize(temporary_file.name)
 
