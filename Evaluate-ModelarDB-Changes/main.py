@@ -13,6 +13,7 @@ import subprocess
 # Configuration.
 MODELARDB_REPOSITORY = "https://github.com/ModelarData/ModelarDB-RS.git"
 UTILITIES_REPOSITORY = "https://github.com/ModelarData/Utilities.git"
+TABLE_NAME = "evaluate_changes"
 STDOUT = subprocess.PIPE
 STDERR = subprocess.PIPE
 
@@ -108,7 +109,7 @@ def print_stream(output_stream):
 def ingest_test_data(utilities_loader, test_data):
     start_time = time.time()
     process = subprocess.run(
-        ["python3", utilities_loader, "127.0.0.1:9999", "evaluate_changes", test_data],
+        ["python3", utilities_loader, "127.0.0.1:9999", TABLE_NAME, test_data],
         stdout=STDOUT,
         stderr=STDERR,
     )
@@ -160,14 +161,15 @@ def send_sigint_to_process(process):
 
 
 def append_finished_result(
-    output_file, current_change, changes, ingestion_time, query_time, data_folder_size
+    output_file, current_change, changes, ingestion_time, compaction_time, query_execution_times, data_folder_size
 ):
     results = {
         "changes": changes,
         "ingestion_time_in_seconds": ingestion_time,
-        "query_time_in_seconds": query_time,
+        "compaction_time_in_seconds": compaction_time,
         "data_folder_size_in_kib": data_folder_size,
     }
+    results.update(query_execution_times)
 
     output_file.write('  "')
     output_file.write(str(current_change))
@@ -197,11 +199,11 @@ def finish_output_file_and_kill_process(output_file):
 # Main Function.
 if __name__ == "__main__":
     # Ensure the necessary arguments are provided.
-    if len(sys.argv) != 5:
+    if len(sys.argv) < 5:
         print(
             "usage: "
             + sys.argv[0]
-            + " changes.json test_data.parquet queries.sql output_file"
+            + " output_file changes.json parquet_file_or_folder queries.sql+"
         )
         sys.exit(1)
 
@@ -219,17 +221,17 @@ if __name__ == "__main__":
     git_clone(UTILITIES_REPOSITORY)
 
     # Read changes.
-    (file_path, start, end, changes) = read_changes(modelardb_folder, sys.argv[1])
+    (file_path, start, end, changes) = read_changes(modelardb_folder, sys.argv[2])
     if not os.path.isfile(file_path):
         print("ERROR: file to change does not exist.")
         sys.exit(1)
 
     # Compute absolute paths.
-    test_data = os.path.abspath(sys.argv[2])
-    queries = os.path.abspath(sys.argv[3])
+    test_data = os.path.abspath(sys.argv[3])
+    query_sets = list(map(lambda q: os.path.abspath(q), sys.argv[4:]))
 
     # Open output file.
-    output_file = open(sys.argv[4], "w")
+    output_file = open(sys.argv[1], "w")
     output_file.write("{\n")
 
     # Cleanup on exit.
@@ -261,18 +263,37 @@ if __name__ == "__main__":
         # Measure ingestion time in seconds.
         modelardbd = start_modelardbd(modelardb_folder, data_folder)
         ingestion_time = ingest_test_data(utilities_loader, test_data)
-        success = send_sigint_to_process(modelardbd)  # Ensure data is flushed.
-        if not ingestion_time or not success:
+        if not ingestion_time:
             print("ERROR: failed to ingest test data.")
             print_separator(current_change, last_change)
             continue
 
+        # Measure compaction time in seconds.
+        with tempfile.NamedTemporaryFile("w+") as small_select_query:
+            small_select_query.write(f"SELECT * FROM {TABLE_NAME} LIMIT 1")
+            compaction_time = execute_queries(small_select_query.name)
+            if not compaction_time:
+                print("ERROR: failed to compact files.")
+                print_separator(current_change, last_change)
+                continue
+
         # Measure query time in seconds.
-        modelardbd = start_modelardbd(modelardb_folder, data_folder)
-        query_time = execute_queries(queries)
-        success = send_sigint_to_process(modelardbd)  # Ensure process is gone.
-        if not query_time or not success:
-            print("ERROR: failed to execute queries.")
+        query_execution_times = {}
+        for query_set in query_sets:
+            query_time = execute_queries(query_set)
+            if not query_time:
+                print(f"error: failed to execute queries in {query_set}.")
+                print_separator(current_change, last_change)
+                continue
+  
+            query_set_name = os.path.basename(query_set)
+            query_execution_name = f"{query_set_name}_in_seconds"
+            query_execution_times[query_execution_name] = query_time
+
+        # Ensure the process is gone.
+        successfully_killed = send_sigint_to_process(modelardbd) 
+        if not successfully_killed:
+            print("ERROR: failed to terminate process.")
             print_separator(current_change, last_change)
             continue
 
@@ -283,7 +304,8 @@ if __name__ == "__main__":
             current_change,
             changes,
             ingestion_time,
-            query_time,
+            compaction_time,
+            query_execution_times,
             data_folder_size,
         )
         temporary_directory.cleanup()
