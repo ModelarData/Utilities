@@ -1,4 +1,6 @@
+import os
 import sys
+import glob
 
 import pyarrow
 from pyarrow import parquet
@@ -29,7 +31,7 @@ def create_model_table(flight_client, table_name, schema, error_bound):
     # Execute the CREATE MODEL TABLE command.
     action = flight.Action("CommandStatementUpdate", str.encode(sql))
     result = flight_client.do_action(action)
-    print(list(result))
+    return list(result)
 
 
 def read_parquet_file_or_folder(path):
@@ -73,7 +75,7 @@ def do_put_arrow_table(flight_client, table_name, arrow_table):
     # Flush the data to disk.
     action = flight.Action("FlushMemory", b"")
     result = flight_client.do_action(action)
-    print(list(result))
+    return list(result)
 
 
 # Main Function.
@@ -84,9 +86,21 @@ if __name__ == "__main__":
 
     flight_client = flight.FlightClient(f"grpc://{sys.argv[1]}")
     table_name = sys.argv[2]
-    arrow_table = read_parquet_file_or_folder(sys.argv[3])
     error_bound = sys.argv[4] if len(sys.argv) > 4 else "0.0"
 
+    if os.path.isdir(sys.argv[3]):
+        parquet_files = glob.glob(sys.argv[3] + os.sep + "*.parquet")
+        parquet_files.sort()  # Makes ingestion order more intuitive.
+    elif os.path.isfile(sys.argv[3]):
+        parquet_files = [sys.argv[3]]
+    else:
+        raise ValueError("parquet_file_or_folder is not a file or a folder")
+
+    arrow_table = read_parquet_file_or_folder(parquet_files[0])
     if not table_exists(flight_client, table_name):
         create_model_table(flight_client, table_name, arrow_table.schema, error_bound)
-    do_put_arrow_table(flight_client, table_name, arrow_table)
+
+    for index, parquet_file in enumerate(parquet_files):
+        print(f"- Processing {parquet_file} ({index + 1} of {len(parquet_files)})")
+        arrow_table = read_parquet_file_or_folder(parquet_file)
+        do_put_arrow_table(flight_client, table_name, arrow_table)
