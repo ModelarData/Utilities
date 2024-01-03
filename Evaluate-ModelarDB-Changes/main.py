@@ -282,7 +282,7 @@ if __name__ == "__main__":
         for query_set in query_sets:
             query_time = execute_queries(query_set)
             if not query_time:
-                print(f"error: failed to execute queries in {query_set}.")
+                print(f"ERROR: failed to execute queries in {query_set}.")
                 print_separator(current_change, last_change)
                 continue
   
