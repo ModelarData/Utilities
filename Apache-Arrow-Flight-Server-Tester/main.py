@@ -91,6 +91,20 @@ def list_actions(flight_client):
     print(list(response))
 
 
+def update_configuration(flight_client: flight.FlightClient, setting: str, setting_value: str) -> None:
+    setting_bytes = str.encode(setting)
+    setting_size = len(setting_bytes).to_bytes(2, byteorder="big")
+
+    setting_value_bytes = str.encode(setting_value)
+    setting_value_size = len(setting_value_bytes).to_bytes(2, byteorder="big")
+
+    action_body = setting_size + setting_bytes + setting_value_size + setting_value_bytes
+    action = pyarrow.flight.Action("UpdateConfiguration", action_body)
+    response = flight_client.do_action(action)
+
+    print(list(response))
+
+
 def update_object_store(flight_client: flight.FlightClient, object_store_type: Literal["s3", "azureblobstorage"],
                         arguments: list[str]) -> None:
     """
