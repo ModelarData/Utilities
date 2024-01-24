@@ -91,13 +91,27 @@ def create_update_object_store_action_body(arguments: list[str]) -> bytes:
     return action_body
 
 
+# Main Function.
 if __name__ == "__main__":
     manager_client = flight.FlightClient("grpc://127.0.0.1:9998")
 
     print(list_actions(manager_client))
-    print(list_table_names(manager_client))
 
+    print(do_action(
+        manager_client,
+        "CommandStatementUpdate",
+        "CREATE TABLE test_table_1(timestamp TIMESTAMP, values REAL, metadata REAL)",
+    ))
+    print(do_action(
+        manager_client,
+        "CommandStatementUpdate",
+        "CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model"
+        " TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature"
+        " FIELD(5))",
+    ))
+
+    print(list_table_names(manager_client))
     print(get_schema(manager_client, "test_table_1"))
     print(get_schema(manager_client, "test_model_table_1"))
 
-    print(initialize_database(manager_client, ["test_model_table_1", "test_table_1"]))
+    print(initialize_database(manager_client, ["test_table_1"]))
