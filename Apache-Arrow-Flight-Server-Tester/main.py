@@ -7,45 +7,6 @@ import pyarrow
 from pyarrow import flight
 
 
-# Helper Functions.
-def get_pyarrow_schema():
-    return pyarrow.schema(
-        [
-            ("location", pyarrow.utf8()),
-            ("install_year", pyarrow.utf8()),
-            ("model", pyarrow.utf8()),
-            ("timestamp", pyarrow.timestamp("ms")),
-            ("power_output", pyarrow.float32()),
-            ("wind_speed", pyarrow.float32()),
-            ("temperature", pyarrow.float32()),
-        ]
-    )
-
-
-def create_record_batch(num_rows):
-    location = ["aalborg" if i % 2 == 0 else "nibe" for i in range(num_rows)]
-    install_year = ["2021" if i % 2 == 0 else "2022" for i in range(num_rows)]
-    model = ["w72" if i % 2 == 0 else "w73" for i in range(num_rows)]
-
-    timestamp = [round(time.time() * 1000) + (i * 1000) for i in range(num_rows)]
-    power_output = [float(randrange(0, 30)) for _ in range(num_rows)]
-    wind_speed = [float(randrange(50, 100)) for _ in range(num_rows)]
-    temperature = [float(randrange(0, 40)) for _ in range(num_rows)]
-
-    return pyarrow.RecordBatch.from_arrays(
-        [
-            location,
-            install_year,
-            model,
-            timestamp,
-            power_output,
-            wind_speed,
-            temperature,
-        ],
-        schema=get_pyarrow_schema(),
-    )
-
-
 # PyArrow Functions.
 def list_flights(flight_client):
     response = flight_client.list_flights()
@@ -89,6 +50,45 @@ def list_actions(flight_client):
     response = flight_client.list_actions()
 
     print(list(response))
+
+
+# Helper Functions.
+def get_pyarrow_schema():
+    return pyarrow.schema(
+        [
+            ("location", pyarrow.utf8()),
+            ("install_year", pyarrow.utf8()),
+            ("model", pyarrow.utf8()),
+            ("timestamp", pyarrow.timestamp("ms")),
+            ("power_output", pyarrow.float32()),
+            ("wind_speed", pyarrow.float32()),
+            ("temperature", pyarrow.float32()),
+        ]
+    )
+
+
+def create_record_batch(num_rows):
+    location = ["aalborg" if i % 2 == 0 else "nibe" for i in range(num_rows)]
+    install_year = ["2021" if i % 2 == 0 else "2022" for i in range(num_rows)]
+    model = ["w72" if i % 2 == 0 else "w73" for i in range(num_rows)]
+
+    timestamp = [round(time.time() * 1000) + (i * 1000) for i in range(num_rows)]
+    power_output = [float(randrange(0, 30)) for _ in range(num_rows)]
+    wind_speed = [float(randrange(50, 100)) for _ in range(num_rows)]
+    temperature = [float(randrange(0, 40)) for _ in range(num_rows)]
+
+    return pyarrow.RecordBatch.from_arrays(
+        [
+            location,
+            install_year,
+            model,
+            timestamp,
+            power_output,
+            wind_speed,
+            temperature,
+        ],
+        schema=get_pyarrow_schema(),
+    )
 
 
 def update_configuration(flight_client: flight.FlightClient, setting: str, setting_value: str) -> None:
