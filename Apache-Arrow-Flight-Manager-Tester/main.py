@@ -1,7 +1,9 @@
+import pprint
+
 from typing import Literal
 
 from pyarrow import flight, Schema
-from pyarrow._flight import FlightInfo, FlightClient, ActionType
+from pyarrow._flight import FlightInfo, FlightClient, ActionType, FlightEndpoint
 
 
 # PyArrow Functions.
@@ -46,6 +48,22 @@ def initialize_database(flight_client: FlightClient, tables: list[str]) -> list[
     return decoded_result.split(";")
 
 
+def execute_query(flight_client: FlightClient, query: str) -> None:
+    # Retrieve the flight info that describes how to execute the query.
+    query_descriptor = flight.FlightDescriptor.for_command(query)
+    flight_info: FlightInfo = flight_client.get_flight_info(query_descriptor)
+
+    # Use the flight endpoint in the returned flight info to execute the query.
+    endpoint: FlightEndpoint = flight_info.endpoints[0]
+    cloud_node_url = endpoint.locations[0]
+
+    cloud_client = flight.FlightClient(cloud_node_url)
+    response = cloud_client.do_get(endpoint.ticket)
+
+    for batch in response:
+        pprint.pprint(batch.data.to_pydict())
+
+
 def update_object_store(flight_client: flight.FlightClient, object_store_type: Literal["s3", "azureblobstorage"],
                         arguments: list[str]) -> list[any]:
     """
@@ -74,7 +92,7 @@ def create_update_object_store_action_body(arguments: list[str]) -> bytes:
 
 
 if __name__ == "__main__":
-    manager_client = flight.FlightClient("grpc://127.0.0.1:8888")
+    manager_client = flight.FlightClient("grpc://127.0.0.1:9998")
 
     print(list_actions(manager_client))
     print(list_table_names(manager_client))
