@@ -5,32 +5,33 @@ from typing import Literal
 
 import pyarrow
 from pyarrow import flight
+from pyarrow._flight import FlightClient
 
 
 # PyArrow Functions.
-def list_flights(flight_client):
+def list_flights(flight_client: FlightClient) -> None:
     response = flight_client.list_flights()
 
     print(list(response))
 
 
-def get_schema(flight_client, table_name):
-    upload_descriptor = pyarrow.flight.FlightDescriptor.for_path(table_name)
+def get_schema(flight_client: FlightClient, table_name: str) -> None:
+    upload_descriptor = flight.FlightDescriptor.for_path(table_name)
     response = flight_client.get_schema(upload_descriptor)
 
     print(response.schema)
 
 
-def do_get(flight_client, ticket):
-    ticket = flight.Ticket(ticket)
+def do_get(flight_client: FlightClient, query: str) -> None:
+    ticket = flight.Ticket(query)
     response = flight_client.do_get(ticket)
 
     for batch in response:
         pprint.pprint(batch.data.to_pydict())
 
 
-def do_put(flight_client, table_name):
-    upload_descriptor = pyarrow.flight.FlightDescriptor.for_path(table_name)
+def do_put(flight_client: FlightClient, table_name: str) -> None:
+    upload_descriptor = flight.FlightDescriptor.for_path(table_name)
     writer, _ = flight_client.do_put(upload_descriptor, get_pyarrow_schema())
 
     record_batch = create_record_batch(10000)
@@ -38,22 +39,22 @@ def do_put(flight_client, table_name):
     writer.close()
 
 
-def do_action(flight_client, action_type, action_body_str):
-    action_body = str.encode(action_body_str)
-    action = pyarrow.flight.Action(action_type, action_body)
+def do_action(flight_client: FlightClient, action_type: str, action_body: str) -> None:
+    action_body_bytes = str.encode(action_body)
+    action = flight.Action(action_type, action_body_bytes)
     response = flight_client.do_action(action)
 
     print(list(response))
 
 
-def list_actions(flight_client):
+def list_actions(flight_client: FlightClient) -> None:
     response = flight_client.list_actions()
 
     print(list(response))
 
 
 # Helper Functions.
-def get_pyarrow_schema():
+def get_pyarrow_schema() -> pyarrow.Schema:
     return pyarrow.schema(
         [
             ("location", pyarrow.utf8()),
@@ -67,7 +68,7 @@ def get_pyarrow_schema():
     )
 
 
-def create_record_batch(num_rows):
+def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
     location = ["aalborg" if i % 2 == 0 else "nibe" for i in range(num_rows)]
     install_year = ["2021" if i % 2 == 0 else "2022" for i in range(num_rows)]
     model = ["w72" if i % 2 == 0 else "w73" for i in range(num_rows)]
@@ -99,7 +100,7 @@ def update_configuration(flight_client: flight.FlightClient, setting: str, setti
     setting_value_size = len(setting_value_bytes).to_bytes(2, byteorder="big")
 
     action_body = setting_size + setting_bytes + setting_value_size + setting_value_bytes
-    action = pyarrow.flight.Action("UpdateConfiguration", action_body)
+    action = flight.Action("UpdateConfiguration", action_body)
     response = flight_client.do_action(action)
 
     print(list(response))
@@ -115,7 +116,7 @@ def update_object_store(flight_client: flight.FlightClient, object_store_type: L
     arguments.insert(0, object_store_type)
     action_body = create_update_object_store_action_body(arguments)
 
-    result = flight_client.do_action(pyarrow.flight.Action("UpdateRemoteObjectStore", action_body))
+    result = flight_client.do_action(flight.Action("UpdateRemoteObjectStore", action_body))
 
     print(list(result))
 

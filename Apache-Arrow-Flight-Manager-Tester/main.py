@@ -1,5 +1,4 @@
 import pprint
-
 from typing import Literal
 
 from pyarrow import flight, Schema
