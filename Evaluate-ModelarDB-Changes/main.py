@@ -271,6 +271,7 @@ if __name__ == "__main__":
         # Measure compaction time in seconds.
         with tempfile.NamedTemporaryFile("w+") as small_select_query:
             small_select_query.write(f"SELECT * FROM {TABLE_NAME} LIMIT 1")
+            small_select_query.flush()
             compaction_time = execute_queries(small_select_query.name)
             if not compaction_time:
                 print("ERROR: failed to compact files.")
