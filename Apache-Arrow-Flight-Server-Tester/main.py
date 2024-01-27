@@ -30,11 +30,11 @@ def do_get(flight_client: FlightClient, query: str) -> None:
         pprint.pprint(batch.data.to_pydict())
 
 
-def do_put(flight_client: FlightClient, table_name: str) -> None:
+def do_put(flight_client: FlightClient, table_name: str, num_rows: int) -> None:
     upload_descriptor = flight.FlightDescriptor.for_path(table_name)
     writer, _ = flight_client.do_put(upload_descriptor, get_pyarrow_schema())
 
-    record_batch = create_record_batch(10000)
+    record_batch = create_record_batch(num_rows)
     writer.write(record_batch)
     writer.close()
 
@@ -156,5 +156,5 @@ if __name__ == "__main__":
     get_schema(flight_client, "test_table_1")
     get_schema(flight_client, "test_model_table_1")
 
-    do_put(flight_client, "test_model_table_1")
+    do_put(flight_client, "test_model_table_1", 10000)
     do_get(flight_client, "SELECT * FROM test_model_table_1 LIMIT 5")

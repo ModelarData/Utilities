@@ -2,7 +2,7 @@ import pprint
 from typing import Literal
 
 from pyarrow import flight, Schema
-from pyarrow._flight import FlightInfo, FlightClient, ActionType, FlightEndpoint
+from pyarrow._flight import FlightInfo, FlightClient, ActionType, Result
 
 
 # PyArrow Functions.
@@ -19,7 +19,7 @@ def get_schema(flight_client: FlightClient, table_name: str) -> Schema:
     return response.schema
 
 
-def do_action(flight_client: FlightClient, action_type: str, action_body: str) -> list[any]:
+def do_action(flight_client: FlightClient, action_type: str, action_body: str) -> list[Result]:
     action_body_bytes = str.encode(action_body)
     action = flight.Action(action_type, action_body_bytes)
     response = flight_client.do_action(action)
@@ -50,10 +50,10 @@ def initialize_database(flight_client: FlightClient, tables: list[str]) -> list[
 def execute_query(flight_client: FlightClient, query: str) -> None:
     # Retrieve the flight info that describes how to execute the query.
     query_descriptor = flight.FlightDescriptor.for_command(query)
-    flight_info: FlightInfo = flight_client.get_flight_info(query_descriptor)
+    flight_info = flight_client.get_flight_info(query_descriptor)
 
     # Use the flight endpoint in the returned flight info to execute the query.
-    endpoint: FlightEndpoint = flight_info.endpoints[0]
+    endpoint = flight_info.endpoints[0]
     cloud_node_url = endpoint.locations[0]
 
     cloud_client = flight.FlightClient(cloud_node_url)
@@ -64,7 +64,7 @@ def execute_query(flight_client: FlightClient, query: str) -> None:
 
 
 def update_object_store(flight_client: flight.FlightClient, object_store_type: Literal["s3", "azureblobstorage"],
-                        arguments: list[str]) -> list[any]:
+                        arguments: list[str]) -> list[Result]:
     """
     Update the remote object store in the flight client to the given object store type with the given arguments.
     If `object_store_type` is `s3`, the arguments should be endpoint, bucket name, access key ID, and secret access
