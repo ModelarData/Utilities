@@ -20,7 +20,7 @@ def create_model_table(flight_client, table_name, schema, error_bound):
         if field.type == pyarrow.timestamp("ms"):
             columns.append(f"{field.name} TIMESTAMP")
         elif field.type == pyarrow.float32():
-            columns.append(f"{field.name} FIELD({error_bound})")
+            columns.append(f"{field.name} FIELD({error_bound}%)")
         elif field.type == pyarrow.string():
             columns.append(f"{field.name} TAG")
         else:
@@ -81,7 +81,7 @@ def do_put_arrow_table(flight_client, table_name, arrow_table):
 # Main Function.
 if __name__ == "__main__":
     if len(sys.argv) != 4 and len(sys.argv) != 5:
-        print(f"usage: {sys.argv[0]} host table parquet_file_or_folder [error_bound]")
+        print(f"usage: {sys.argv[0]} host table parquet_file_or_folder [relative_error_bound]")
         sys.exit(1)
 
     flight_client = flight.FlightClient(f"grpc://{sys.argv[1]}")

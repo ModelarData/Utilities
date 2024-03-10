@@ -87,7 +87,7 @@ impl Client {
                 DataType::Timestamp(TimeUnit::Millisecond, None) => {
                     format!("{} TIMESTAMP", field.name())
                 }
-                DataType::Float32 => format!("{} FIELD({error_bound})", field.name()),
+                DataType::Float32 => format!("{} FIELD({error_bound}%)", field.name()),
                 DataType::Utf8 => format!("{} TAG", field.name()),
                 data_type => Err(FlightError::NotYetImplemented(format!(
                     "Only Timestamp, Float, and String are supported, {data_type} is not."
