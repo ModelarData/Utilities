@@ -149,7 +149,7 @@ if __name__ == "__main__":
         "CommandStatementUpdate",
         "CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model"
         " TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature"
-        " FIELD(5))",
+        " FIELD(5%))",
     )
 
     list_flights(flight_client)
