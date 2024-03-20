@@ -342,14 +342,14 @@ if __name__ == "__main__":
                 try:
                     test_data_field_column = test_data.column(field_column_name)
                 except:
-                    if field_column_name.__contains__(" "):
+                    if field_column_name.__contains__("_"):
                         # Spaces in the name may have been replaced by underscores.
                         field_column_name_with_space = field_column_name.replace("_", " ")
                         test_data_field_column = test_data.column(
                             field_column_name_with_space
                         )
                     else: 
-                        # Camel case columns may have been converted to lower case.
+                        # Upper case columns may have been converted to lower case.
                         test_data_cols = [i.lower() for i in test_data.column_names]
                         test_data_field_column = test_data.column(test_data_cols.index(field_column_name))
                 
