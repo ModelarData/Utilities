@@ -348,7 +348,7 @@ if __name__ == "__main__":
                     test_data_field_column = test_data.column(
                         test_data.column_names.lower().index(field_column_name_lowercase_with_space)
                     )
-                
+
                 decompressed_columns = retrieve_ingested_columns(
                     flight_client, timestamp_column_name, field_column_name
                 )
