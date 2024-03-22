@@ -342,10 +342,11 @@ if __name__ == "__main__":
                 try:
                     test_data_field_column = test_data.column(field_column_name)
                 except:
-                    # Spaces in the name may have been replaced by underscores.
-                    field_column_name_with_space = field_column_name.replace("_", " ")
+                    # Spaces in the name may have been replaced by underscores
+                    # and upper case columns may have been converted to lower case.
+                    field_column_name_lowercase_with_space = field_column_name.replace("_", " ").lower()
                     test_data_field_column = test_data.column(
-                        field_column_name_with_space
+                        test_data.column_names.lower().index(field_column_name_lowercase_with_space)
                     )
 
                 decompressed_columns = retrieve_ingested_columns(
