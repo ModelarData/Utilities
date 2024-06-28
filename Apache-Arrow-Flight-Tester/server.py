@@ -10,6 +10,30 @@ from pyarrow import flight
 
 
 # Helper functions.
+def update_configuration(flight_client: flight.FlightClient, setting: str, setting_value: str) -> list[Result]:
+    encoded_setting = common.encode_argument(setting)
+    encoded_setting_value = common.encode_argument(setting_value)
+
+    action_body = encoded_setting + encoded_setting_value
+    action = flight.Action("UpdateConfiguration", action_body)
+    response = flight_client.do_action(action)
+
+    return list(response)
+
+
+def ingest_into_edge_and_query_table(flight_client: FlightClient, num_rows: int) -> None:
+    """
+    Ingest num_rows rows into the table, flush the memory of the edge, and query the first five rows of the table.
+    """
+    record_batch = create_record_batch(num_rows)
+    common.do_put(flight_client, "test_model_table_1", record_batch)
+
+    common.do_action(flight_client, "FlushMemory", "")
+
+    query = Ticket("SELECT * FROM test_model_table_1 LIMIT 5")
+    common.do_get(flight_client, query)
+
+
 def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
     schema = pyarrow.schema(
         [
@@ -44,30 +68,6 @@ def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
         ],
         schema=schema,
     )
-
-
-def update_configuration(flight_client: flight.FlightClient, setting: str, setting_value: str) -> list[Result]:
-    encoded_setting = common.encode_argument(setting)
-    encoded_setting_value = common.encode_argument(setting_value)
-
-    action_body = encoded_setting + encoded_setting_value
-    action = flight.Action("UpdateConfiguration", action_body)
-    response = flight_client.do_action(action)
-
-    return list(response)
-
-
-def ingest_into_edge_and_query_table(flight_client: FlightClient, num_rows: int) -> None:
-    """
-    Ingest num_rows rows into the table, flush the memory of the edge, and query the first five rows of the table.
-    """
-    record_batch = create_record_batch(num_rows)
-    common.do_put(flight_client, "test_model_table_1", record_batch)
-
-    common.do_action(flight_client, "FlushMemory", "")
-
-    query = Ticket("SELECT * FROM test_model_table_1 LIMIT 5")
-    common.do_get(flight_client, query)
 
 
 if __name__ == "__main__":
