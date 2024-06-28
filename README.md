@@ -1,13 +1,9 @@
 # Utilities
 Utilities for simplifying development and testing:
 
-- [Apache Arrow Flight manager testing script](Apache-Arrow-Flight-Manager-Tester) written in
+- [Apache Arrow Flight testing script](Apache-Arrow-Flight-Tester) written in
   [Python 3](https://www.python.org/) to test the different endpoints of the
-  ModelarDB manager Apache Arrow Flight API.
-
-- [Apache Arrow Flight server testing script](Apache-Arrow-Flight-Server-Tester) written in
-  [Python 3](https://www.python.org/) to test the different endpoints of the
-  ModelarDB server Apache Arrow Flight API.
+  ModelarDB server and manager Apache Arrow Flight APIs.
 
 - [Apache Parquet loading script](Apache-Parquet-Loader) written in [Python
   3](https://www.python.org/) to read Apache Parquet files with equivalent
