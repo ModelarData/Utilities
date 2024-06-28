@@ -1,5 +1,3 @@
-from pyarrow._flight import Result, FlightClient, Ticket
-
 import common
 
 import time
@@ -7,6 +5,7 @@ from random import randrange
 
 import pyarrow
 from pyarrow import flight
+from pyarrow._flight import Result, FlightClient, Ticket
 
 
 # Helper functions.

@@ -1,6 +1,6 @@
-from typing import Literal
-
 import common
+
+from typing import Literal
 
 from pyarrow import flight
 from pyarrow._flight import FlightClient, Result
