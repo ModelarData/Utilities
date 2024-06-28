@@ -29,11 +29,10 @@ def do_get(flight_client: FlightClient, ticket: Ticket) -> None:
         pprint.pprint(batch.data.to_pydict())
 
 
-def do_put(flight_client: FlightClient, table_name: str, num_rows: int) -> None:
+def do_put(flight_client: FlightClient, table_name: str, record_batch: pyarrow.RecordBatch) -> None:
     upload_descriptor = flight.FlightDescriptor.for_path(table_name)
-    writer, _ = flight_client.do_put(upload_descriptor, get_pyarrow_schema())
+    writer, _ = flight_client.do_put(upload_descriptor, record_batch.schema)
 
-    record_batch = create_record_batch(num_rows)
     writer.write(record_batch)
     writer.close()
 
@@ -53,8 +52,8 @@ def list_actions(flight_client: FlightClient) -> list[ActionType]:
 
 
 # Helper functions.
-def get_pyarrow_schema() -> pyarrow.Schema:
-    return pyarrow.schema(
+def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
+    schema = pyarrow.schema(
         [
             ("location", pyarrow.utf8()),
             ("install_year", pyarrow.utf8()),
@@ -66,8 +65,6 @@ def get_pyarrow_schema() -> pyarrow.Schema:
         ]
     )
 
-
-def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
     location = ["aalborg" if i % 2 == 0 else "nibe" for i in range(num_rows)]
     install_year = ["2021" if i % 2 == 0 else "2022" for i in range(num_rows)]
     model = ["w72" if i % 2 == 0 else "w73" for i in range(num_rows)]
@@ -87,7 +84,7 @@ def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
             wind_speed,
             temperature,
         ],
-        schema=get_pyarrow_schema(),
+        schema=schema,
     )
 
 
