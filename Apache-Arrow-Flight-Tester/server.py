@@ -10,6 +10,20 @@ from pyarrow import flight
 
 
 # Helper functions.
+def collect_metrics(flight_client: FlightClient) -> pyarrow.RecordBatch:
+    action = flight.Action("CollectMetrics", "")
+    response = flight_client.do_action(action)
+
+    return response[0]
+
+
+def get_configuration(flight_client: FlightClient) -> pyarrow.RecordBatch:
+    action = flight.Action("GetConfiguration", "")
+    response = flight_client.do_action(action)
+
+    return response[0]
+
+
 def update_configuration(flight_client: flight.FlightClient, setting: str, setting_value: str) -> list[Result]:
     encoded_setting = common.encode_argument(setting)
     encoded_setting_value = common.encode_argument(setting_value)
@@ -72,6 +86,11 @@ def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
 
 if __name__ == "__main__":
     server_client = flight.FlightClient("grpc://127.0.0.1:9999")
-    common.create_test_tables(server_client)
 
+    common.create_test_tables(server_client)
     ingest_into_edge_and_query_table(server_client, 10000)
+
+    print(collect_metrics(server_client))
+
+    update_configuration(server_client, "compressed_reserved_memory_in_bytes", "10000000")
+    print(get_configuration(server_client))
