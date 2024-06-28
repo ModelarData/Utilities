@@ -155,19 +155,18 @@ def create_update_object_store_action_body(arguments: list[str]) -> bytes:
     return action_body
 
 
-# Main Function.
-if __name__ == "__main__":
-    manager_client = flight.FlightClient("grpc://127.0.0.1:9998")
-
-    print(list_actions(manager_client))
-
+def create_test_tables(flight_client: FlightClient) -> None:
+    """
+    Create a table and a model table in the flight client, print the current tables to ensure the created tables are
+    included, and print the schema for the created table and model table to ensure the tables are created correctly.
+    """
     print(do_action(
-        manager_client,
+        flight_client,
         "CommandStatementUpdate",
         "CREATE TABLE test_table_1(timestamp TIMESTAMP, values REAL, metadata REAL)",
     ))
     print(do_action(
-        manager_client,
+        flight_client,
         "CommandStatementUpdate",
         "CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model"
         " TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature"
@@ -175,7 +174,30 @@ if __name__ == "__main__":
     ))
 
     print(list_table_names(manager_client))
+
     print(get_schema(manager_client, "test_table_1"))
     print(get_schema(manager_client, "test_model_table_1"))
 
-    print(initialize_database(manager_client, ["test_table_1"]))
+
+def ingest_into_edge_and_query_table(flight_client: FlightClient, num_rows: int) -> None:
+    """
+    Ingest num_rows rows into the table, flush the memory of the edge, and query the first five rows of the table.
+    """
+    record_batch = create_record_batch(num_rows)
+    do_put(flight_client, "test_model_table_1", record_batch)
+
+    do_action(flight_client, "FlushMemory", "")
+
+    query = Ticket("SELECT * FROM test_model_table_1 LIMIT 5")
+    do_get(flight_client, query)
+
+
+# Main Function.
+if __name__ == "__main__":
+    server_client = flight.FlightClient("grpc://127.0.0.1:9999")
+    create_test_tables(server_client)
+
+    ingest_into_edge_and_query_table(server_client, 10000)
+
+    manager_client = flight.FlightClient("grpc://127.0.0.1:9998")
+    create_test_tables(manager_client)
