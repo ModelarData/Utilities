@@ -86,6 +86,7 @@ def create_test_tables(flight_client: FlightClient) -> None:
     Create a table and a model table in the flight client, print the current tables to ensure the created tables are
     included, and print the schema for the created table and model table to ensure the tables are created correctly.
     """
+    print("Creating test tables...")
     print(do_action(
         flight_client,
         "CommandStatementUpdate",
@@ -99,7 +100,12 @@ def create_test_tables(flight_client: FlightClient) -> None:
         " FIELD(5%))",
     ))
 
-    print(list_table_names(flight_client))
+    print("\nCurrent tables:")
+    table_names = list_table_names(flight_client)
+    print(table_names)
 
-    print(get_schema(flight_client, "test_table_1"))
-    print(get_schema(flight_client, "test_model_table_1"))
+    print(f"\nSchema for {table_names[0]}:")
+    print(get_schema(flight_client, table_names[0]))
+
+    print(f"\nSchema for {table_names[1]}:")
+    print(get_schema(flight_client, table_names[1]))

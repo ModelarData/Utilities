@@ -34,16 +34,20 @@ def update_configuration(flight_client: flight.FlightClient, setting: str, setti
     return list(response)
 
 
-def ingest_into_edge_and_query_table(flight_client: FlightClient, num_rows: int) -> None:
+def ingest_into_edge_and_query_table(flight_client: FlightClient, table_name: str, num_rows: int) -> None:
     """
     Ingest num_rows rows into the table, flush the memory of the edge, and query the first five rows of the table.
     """
     record_batch = create_record_batch(num_rows)
-    common.do_put(flight_client, "test_model_table_1", record_batch)
 
+    print(f"Ingesting data into {table_name}...")
+    common.do_put(flight_client, table_name, record_batch)
+
+    print("\nFlushing memory of the edge...\n")
     common.do_action(flight_client, "FlushMemory", "")
 
-    query = Ticket("SELECT * FROM test_model_table_1 LIMIT 5")
+    print(f"First five rows of {table_name}:")
+    query = Ticket(f"SELECT * FROM {table_name} LIMIT 5")
     common.do_get(flight_client, query)
 
 
@@ -87,9 +91,4 @@ if __name__ == "__main__":
     server_client = flight.FlightClient("grpc://127.0.0.1:9999")
 
     common.create_test_tables(server_client)
-    ingest_into_edge_and_query_table(server_client, 10000)
-
-    print(collect_metrics(server_client))
-
-    update_configuration(server_client, "compressed_reserved_memory_in_bytes", "10000000")
-    print(get_configuration(server_client))
+    ingest_into_edge_and_query_table(server_client, "test_model_table_1", 10000)
