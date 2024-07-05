@@ -19,13 +19,19 @@ def register_node(flight_client: FlightClient, node_url: str, node_mode: Literal
     encoded_node_mode = common.encode_argument(node_mode)
 
     action_body = encoded_node_url + encoded_node_mode
-    return common.do_action(flight_client, "RegisterNode", action_body)
+    action = flight.Action("RegisterNode", action_body)
+    response = flight_client.do_action(action)
+
+    return list(response)[0].body.to_pybytes()
 
 
 def remove_node(flight_client: FlightClient, node_url: str) -> list[Result]:
     encoded_node_url = common.encode_argument(node_url)
 
-    return common.do_action(flight_client, "RemoveNode", encoded_node_url)
+    action = flight.Action("RemoveNode", encoded_node_url)
+    response = flight_client.do_action(action)
+
+    return list(response)
 
 
 def execute_query(flight_client: FlightClient, query: str) -> None:
