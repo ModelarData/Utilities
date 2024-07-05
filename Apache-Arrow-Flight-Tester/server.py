@@ -20,11 +20,14 @@ def collect_metrics(flight_client: FlightClient) -> pd.DataFrame:
     return metric_df
 
 
-def get_configuration(flight_client: FlightClient) -> pyarrow.RecordBatch:
-    action = flight.Action("GetConfiguration", "")
+def get_configuration(flight_client: FlightClient) -> pd.DataFrame:
+    action = flight.Action("GetConfiguration", b"")
     response = flight_client.do_action(action)
 
-    return response[0]
+    batch_bytes = list(response)[0].body.to_pybytes()
+    configuration_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
+
+    return configuration_df
 
 
 def update_configuration(flight_client: flight.FlightClient, setting: str, setting_value: str) -> list[Result]:
@@ -96,3 +99,10 @@ if __name__ == "__main__":
 
     common.create_test_tables(server_client)
     ingest_into_edge_and_query_table(server_client, "test_model_table_1", 10000)
+
+    print("\nCurrent metrics:")
+    print(collect_metrics(server_client).to_string())
+
+    print("\nCurrent configuration:")
+    update_configuration(server_client, "compressed_reserved_memory_in_bytes", "10000000")
+    print(get_configuration(server_client))
