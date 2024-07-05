@@ -4,16 +4,20 @@ import time
 from random import randrange
 
 import pyarrow
+import pandas as pd
 from pyarrow import flight
 from pyarrow._flight import Result, FlightClient, Ticket
 
 
 # Helper functions.
-def collect_metrics(flight_client: FlightClient) -> pyarrow.RecordBatch:
-    action = flight.Action("CollectMetrics", "")
+def collect_metrics(flight_client: FlightClient) -> pd.DataFrame:
+    action = flight.Action("CollectMetrics", b"")
     response = flight_client.do_action(action)
 
-    return response[0]
+    batch_bytes = list(response)[0].body.to_pybytes()
+    metric_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
+
+    return metric_df
 
 
 def get_configuration(flight_client: FlightClient) -> pyarrow.RecordBatch:
