@@ -8,7 +8,7 @@ from pyarrow._flight import FlightClient, Result
 
 # Helper functions.
 def initialize_database(flight_client: FlightClient, tables: list[str]) -> list[str]:
-    result = common.do_action(flight_client, "InitializeDatabase", ",".join(tables))[0]
+    result = common.do_action(flight_client, "InitializeDatabase", str.encode(",".join(tables)))[0]
     decoded_result = result.body.to_pybytes().decode("utf-8")
 
     return decoded_result.split(";")
@@ -19,19 +19,15 @@ def register_node(flight_client: FlightClient, node_url: str, node_mode: Literal
     encoded_node_mode = common.encode_argument(node_mode)
 
     action_body = encoded_node_url + encoded_node_mode
-    action = flight.Action("RegisterNode", action_body)
-    response = flight_client.do_action(action)
+    response = common.do_action(flight_client, "RegisterNode", action_body)
 
-    return list(response)[0].body.to_pybytes()
+    return response[0].body.to_pybytes()
 
 
 def remove_node(flight_client: FlightClient, node_url: str) -> list[Result]:
     encoded_node_url = common.encode_argument(node_url)
 
-    action = flight.Action("RemoveNode", encoded_node_url)
-    response = flight_client.do_action(action)
-
-    return list(response)
+    return common.do_action(flight_client, "RemoveNode", encoded_node_url)
 
 
 def execute_query(flight_client: FlightClient, query: str) -> None:

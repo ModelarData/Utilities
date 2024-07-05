@@ -11,20 +11,18 @@ from pyarrow._flight import Result, FlightClient, Ticket
 
 # Helper functions.
 def collect_metrics(flight_client: FlightClient) -> pd.DataFrame:
-    action = flight.Action("CollectMetrics", b"")
-    response = flight_client.do_action(action)
+    response = common.do_action(flight_client, "CollectMetrics", b"")
 
-    batch_bytes = list(response)[0].body.to_pybytes()
+    batch_bytes = response[0].body.to_pybytes()
     metric_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
 
     return metric_df
 
 
 def get_configuration(flight_client: FlightClient) -> pd.DataFrame:
-    action = flight.Action("GetConfiguration", b"")
-    response = flight_client.do_action(action)
+    response = common.do_action(flight_client, "GetConfiguration", b"")
 
-    batch_bytes = list(response)[0].body.to_pybytes()
+    batch_bytes = response[0].body.to_pybytes()
     configuration_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
 
     return configuration_df
@@ -35,10 +33,7 @@ def update_configuration(flight_client: flight.FlightClient, setting: str, setti
     encoded_setting_value = common.encode_argument(setting_value)
 
     action_body = encoded_setting + encoded_setting_value
-    action = flight.Action("UpdateConfiguration", action_body)
-    response = flight_client.do_action(action)
-
-    return list(response)
+    return common.do_action(flight_client, "UpdateConfiguration", action_body)
 
 
 def ingest_into_edge_and_query_table(flight_client: FlightClient, table_name: str, num_rows: int) -> None:
@@ -51,7 +46,7 @@ def ingest_into_edge_and_query_table(flight_client: FlightClient, table_name: st
     common.do_put(flight_client, table_name, record_batch)
 
     print("Flushing memory of the edge...\n")
-    common.do_action(flight_client, "FlushMemory", "")
+    common.do_action(flight_client, "FlushMemory", b"")
 
     print(f"First five rows of {table_name}:")
     query = Ticket(f"SELECT * FROM {table_name} LIMIT 5")

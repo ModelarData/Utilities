@@ -35,9 +35,8 @@ def do_put(flight_client: FlightClient, table_name: str, record_batch: pyarrow.R
     writer.close()
 
 
-def do_action(flight_client: FlightClient, action_type: str, action_body: str) -> list[Result]:
-    action_body_bytes = str.encode(action_body)
-    action = flight.Action(action_type, action_body_bytes)
+def do_action(flight_client: FlightClient, action_type: str, action_body: bytes) -> list[Result]:
+    action = flight.Action(action_type, action_body)
     response = flight_client.do_action(action)
 
     return list(response)
@@ -69,9 +68,7 @@ def update_object_store(flight_client: flight.FlightClient, object_store_type: L
     for argument in arguments:
         action_body += encode_argument(argument)
 
-    result = flight_client.do_action(flight.Action("UpdateRemoteObjectStore", action_body))
-
-    return list(result)
+    return do_action(flight_client, "UpdateRemoteObjectStore", action_body)
 
 
 def encode_argument(argument: str) -> bytes:
@@ -90,14 +87,14 @@ def create_test_tables(flight_client: FlightClient) -> None:
     print(do_action(
         flight_client,
         "CommandStatementUpdate",
-        "CREATE TABLE test_table_1(timestamp TIMESTAMP, values REAL, metadata REAL)",
+        str.encode("CREATE TABLE test_table_1(timestamp TIMESTAMP, values REAL, metadata REAL)"),
     ))
     print(do_action(
         flight_client,
         "CommandStatementUpdate",
-        "CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model"
-        " TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature"
-        " FIELD(5%))",
+        str.encode("CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model"
+                   "TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature"
+                   "FIELD(5%))"),
     ))
 
     print("\nCurrent tables:")
