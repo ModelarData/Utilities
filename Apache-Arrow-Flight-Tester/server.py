@@ -47,10 +47,10 @@ def ingest_into_edge_and_query_table(flight_client: FlightClient, table_name: st
     """
     record_batch = create_record_batch(num_rows)
 
-    print(f"Ingesting data into {table_name}...")
+    print(f"Ingesting data into {table_name}...\n")
     common.do_put(flight_client, table_name, record_batch)
 
-    print("\nFlushing memory of the edge...\n")
+    print("Flushing memory of the edge...\n")
     common.do_action(flight_client, "FlushMemory", "")
 
     print(f"First five rows of {table_name}:")

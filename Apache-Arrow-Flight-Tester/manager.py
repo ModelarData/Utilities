@@ -29,14 +29,14 @@ def remove_node(flight_client: FlightClient, node_url: str) -> list[Result]:
 
 
 def execute_query(flight_client: FlightClient, query: str) -> None:
-    # Retrieve the flight info that describes how to execute the query.
+    print("Retrieving cloud node that can execute the query...")
     query_descriptor = flight.FlightDescriptor.for_command(query)
     flight_info = flight_client.get_flight_info(query_descriptor)
 
-    # Use the flight endpoint in the returned flight info to execute the query.
     endpoint = flight_info.endpoints[0]
     cloud_node_url = endpoint.locations[0]
 
+    print(f"Executing query on {cloud_node_url}...")
     cloud_client = flight.FlightClient(cloud_node_url)
     common.do_get(cloud_client, endpoint.ticket)
 
