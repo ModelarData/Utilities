@@ -92,8 +92,8 @@ def create_test_tables(flight_client: FlightClient) -> None:
     print(do_action(
         flight_client,
         "CommandStatementUpdate",
-        str.encode("CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model"
-                   "TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature"
+        str.encode("CREATE MODEL TABLE test_model_table_1(location TAG, install_year TAG, model "
+                   "TAG, timestamp TIMESTAMP, power_output FIELD, wind_speed FIELD, temperature "
                    "FIELD(5%))"),
     ))
 
