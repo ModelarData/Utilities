@@ -32,6 +32,9 @@ Utilities for simplifying development and testing:
   the state of a repository is correct before or after a specific action has
   been performed.
 
+- [Python library testing script](Library-Tester) written in [Python 3](https://www.python.org/) to test the different 
+  endpoints of the ModelarDB Python library.
+
 - [ModelarDB evaluator](ModelarDB-Evaluator) written in
   [Rust](https://www.rust-lang.org/) to evaluate how well
   [ModelarDB](https://github.com/ModelarData/ModelarDB-RS) compresses a data set
