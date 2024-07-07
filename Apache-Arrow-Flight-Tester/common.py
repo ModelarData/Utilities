@@ -1,12 +1,11 @@
 import pprint
-from typing import Literal
 
 import pyarrow
 from pyarrow import flight, Schema
 from pyarrow._flight import FlightInfo, FlightClient, ActionType, Result, Ticket
 
 
-# PyArrow Functions.
+# Apache Arrow Flight functions.
 def list_flights(flight_client: FlightClient) -> list[FlightInfo]:
     response = flight_client.list_flights()
 
@@ -55,17 +54,29 @@ def list_table_names(flight_client: FlightClient) -> list[str]:
     return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
 
-def update_object_store(flight_client: flight.FlightClient, object_store_type: Literal["s3", "azureblobstorage"],
-                        arguments: list[str]) -> list[Result]:
-    """
-    Update the remote object store in the flight client to the given object store type with the given arguments.
-    If `object_store_type` is `s3`, the arguments should be endpoint, bucket name, access key ID, and secret access
-    key. If `object_store_type` is `azureblobstorage`, the arguments should be account, access key, and container name.
-    """
-    arguments.insert(0, object_store_type)
+class ObjectStoreArguments:
+    def __init__(self, **kwargs):
+        self.arguments = kwargs
 
+    def argument_values(self) -> list:
+        return list(self.arguments.values())
+
+
+class S3Arguments(ObjectStoreArguments):
+    def __init__(self, endpoint: str, bucket_name: str, access_key_id: str, secret_access_key: str):
+        super().__init__(endpoint=endpoint, bucket_name=bucket_name, access_key_id=access_key_id,
+                         secret_access_key=secret_access_key)
+
+
+class AzureBlobStorageArguments(ObjectStoreArguments):
+    def __init__(self, account: str, access_key: str, container_name: str):
+        super().__init__(account=account, access_key=access_key, container_name=container_name)
+
+
+def update_object_store(flight_client: flight.FlightClient, object_store_arguments: ObjectStoreArguments) -> list[
+    Result]:
     action_body = bytes()
-    for argument in arguments:
+    for argument in object_store_arguments.argument_values():
         action_body += encode_argument(argument)
 
     return do_action(flight_client, "UpdateRemoteObjectStore", action_body)
@@ -80,7 +91,7 @@ def encode_argument(argument: str) -> bytes:
 
 def create_test_tables(flight_client: FlightClient) -> None:
     """
-    Create a table and a model table in the flight client, print the current tables to ensure the created tables are
+    Create a table and a model table using the flight client, print the current tables to ensure the created tables are
     included, and print the schema for the created table and model table to ensure the tables are created correctly.
     """
     print("Creating test tables...")
