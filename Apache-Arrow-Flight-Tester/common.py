@@ -54,34 +54,6 @@ def list_table_names(flight_client: FlightClient) -> list[str]:
     return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
 
-class ObjectStoreArguments:
-    def __init__(self, **kwargs):
-        self.arguments = kwargs
-
-    def argument_values(self) -> list:
-        return list(self.arguments.values())
-
-
-class S3Arguments(ObjectStoreArguments):
-    def __init__(self, endpoint: str, bucket_name: str, access_key_id: str, secret_access_key: str):
-        super().__init__(endpoint=endpoint, bucket_name=bucket_name, access_key_id=access_key_id,
-                         secret_access_key=secret_access_key)
-
-
-class AzureBlobStorageArguments(ObjectStoreArguments):
-    def __init__(self, account: str, access_key: str, container_name: str):
-        super().__init__(account=account, access_key=access_key, container_name=container_name)
-
-
-def update_object_store(flight_client: flight.FlightClient, object_store_arguments: ObjectStoreArguments) -> list[
-    Result]:
-    action_body = bytes()
-    for argument in object_store_arguments.argument_values():
-        action_body += encode_argument(argument)
-
-    return do_action(flight_client, "UpdateRemoteObjectStore", action_body)
-
-
 def encode_argument(argument: str) -> bytes:
     argument_bytes = str.encode(argument)
     argument_size = len(argument_bytes).to_bytes(2, byteorder="big")
