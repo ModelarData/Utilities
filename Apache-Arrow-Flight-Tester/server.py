@@ -21,9 +21,8 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         writer.write(record_batch)
         writer.close()
 
-    def do_get(self, sql: str) -> None:
+    def do_get(self, ticket: Ticket) -> None:
         """Execute a SQL query on the server and print the result."""
-        ticket = Ticket(sql)
         response = self.flight_client.do_get(ticket)
 
         for batch in response:
@@ -68,7 +67,7 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         self.do_action("FlushMemory", b"")
 
         print(f"First five rows of {table_name}:")
-        self.do_get(f"SELECT * FROM {table_name} LIMIT 5")
+        self.do_get(Ticket(f"SELECT * FROM {table_name} LIMIT 5"))
 
 
 def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
