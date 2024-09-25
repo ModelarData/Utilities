@@ -1,56 +1,74 @@
-import common
-
+import pprint
 import time
 from random import randrange
 
-import pyarrow
 import pandas as pd
+import pyarrow
 from pyarrow import flight
-from pyarrow._flight import Result, FlightClient, Ticket
+from pyarrow._flight import Result, Ticket
+
+from common import ModelarDBFlightClient, encode_argument
 
 
-# Helper functions.
-def collect_metrics(flight_client: FlightClient) -> pd.DataFrame:
-    response = common.do_action(flight_client, "CollectMetrics", b"")
+class ModelarDBServerFlightClient(ModelarDBFlightClient):
+    """Functionality for interacting with a ModelarDB server using Apache Arrow Flight."""
 
-    batch_bytes = response[0].body.to_pybytes()
-    metric_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
+    def do_put(self, table_name: str, record_batch: pyarrow.RecordBatch) -> None:
+        """Insert the data in the given record batch into the table with the given table name."""
+        upload_descriptor = flight.FlightDescriptor.for_path(table_name)
+        writer, _ = self.flight_client.do_put(upload_descriptor, record_batch.schema)
 
-    return metric_df
+        writer.write(record_batch)
+        writer.close()
 
+    def do_get(self, sql: str) -> None:
+        """Execute a SQL query on the server and print the result."""
+        ticket = Ticket(sql)
+        response = self.flight_client.do_get(ticket)
 
-def get_configuration(flight_client: FlightClient) -> pd.DataFrame:
-    response = common.do_action(flight_client, "GetConfiguration", b"")
+        for batch in response:
+            pprint.pprint(batch.data.to_pydict())
 
-    batch_bytes = response[0].body.to_pybytes()
-    configuration_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
+    def collect_metrics(self) -> pd.DataFrame:
+        """Collect metrics from the server and return them as a pandas DataFrame."""
+        response = self.do_action("CollectMetrics", b"")
 
-    return configuration_df
+        batch_bytes = response[0].body.to_pybytes()
+        metric_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
 
+        return metric_df
 
-def update_configuration(flight_client: flight.FlightClient, setting: str, setting_value: str) -> list[Result]:
-    encoded_setting = common.encode_argument(setting)
-    encoded_setting_value = common.encode_argument(setting_value)
+    def get_configuration(self) -> pd.DataFrame:
+        """Get the current configuration of the server and return it as a pandas DataFrame."""
+        response = self.do_action("GetConfiguration", b"")
 
-    action_body = encoded_setting + encoded_setting_value
-    return common.do_action(flight_client, "UpdateConfiguration", action_body)
+        batch_bytes = response[0].body.to_pybytes()
+        configuration_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
 
+        return configuration_df
 
-def ingest_into_edge_and_query_table(flight_client: FlightClient, table_name: str, num_rows: int) -> None:
-    """
-    Ingest num_rows rows into the table, flush the memory of the edge, and query the first five rows of the table.
-    """
-    record_batch = create_record_batch(num_rows)
+    def update_configuration(self, setting: str, setting_value: str) -> list[Result]:
+        """Update the given setting to the given setting value in the server configuration."""
+        encoded_setting = encode_argument(setting)
+        encoded_setting_value = encode_argument(setting_value)
 
-    print(f"Ingesting data into {table_name}...\n")
-    common.do_put(flight_client, table_name, record_batch)
+        action_body = encoded_setting + encoded_setting_value
+        return self.do_action("UpdateConfiguration", action_body)
 
-    print("Flushing memory of the edge...\n")
-    common.do_action(flight_client, "FlushMemory", b"")
+    def ingest_into_server_and_query_table(self, table_name: str, num_rows: int) -> None:
+        """
+        Ingest num_rows rows into the table, flush the memory of the server, and query the first five rows of the table.
+        """
+        record_batch = create_record_batch(num_rows)
 
-    print(f"First five rows of {table_name}:")
-    query = Ticket(f"SELECT * FROM {table_name} LIMIT 5")
-    common.do_get(flight_client, query)
+        print(f"Ingesting data into {table_name}...\n")
+        self.do_put(table_name, record_batch)
+
+        print("Flushing memory of the edge...\n")
+        self.do_action("FlushMemory", b"")
+
+        print(f"First five rows of {table_name}:")
+        self.do_get(f"SELECT * FROM {table_name} LIMIT 5")
 
 
 def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
@@ -90,14 +108,14 @@ def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
 
 
 if __name__ == "__main__":
-    server_client = flight.FlightClient("grpc://127.0.0.1:9999")
+    server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999")
 
-    common.create_test_tables(server_client)
-    ingest_into_edge_and_query_table(server_client, "test_model_table_1", 10000)
+    server_client.create_test_tables()
+    server_client.ingest_into_server_and_query_table("test_model_table_1", 10000)
 
     print("\nCurrent metrics:")
-    print(collect_metrics(server_client).to_string())
+    print(server_client.collect_metrics().to_string())
 
     print("\nCurrent configuration:")
-    update_configuration(server_client, "compressed_reserved_memory_in_bytes", "10000000")
-    print(get_configuration(server_client))
+    server_client.update_configuration("compressed_reserved_memory_in_bytes", "10000000")
+    print(server_client.get_configuration())
