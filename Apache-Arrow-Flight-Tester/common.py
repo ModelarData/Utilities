@@ -39,12 +39,13 @@ class ModelarDBFlightClient:
         flights = self.list_flights()
         return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
-    def create_table(self, table_name: str, columns: list[tuple[str, str]]) -> None:
+    def create_table(self, table_name: str, columns: list[tuple[str, str]], model_table=False) -> None:
         """
         Create a table in the server or manager with the given name and columns. Each pair in columns should have the
         format (column_name, column_type).
         """
-        sql = f"CREATE TABLE {table_name}({', '.join([f'{column[0]} {column[1]}' for column in columns])})"
+        create_table = "CREATE MODEL TABLE" if model_table else "CREATE TABLE"
+        sql = f"{create_table} {table_name}({', '.join([f'{column[0]} {column[1]}' for column in columns])})"
         self.do_action("CommandStatementUpdate", str.encode(sql))
 
     def create_test_tables(self) -> None:
@@ -59,7 +60,7 @@ class ModelarDBFlightClient:
             ("location", "TAG"), ("install_year", "TAG"), ("model", "TAG"),
             ("timestamp", "TIMESTAMP"), ("power_output", "FIELD"),
             ("wind_speed", "FIELD"), ("temperature", "FIELD(5%)")
-        ])
+        ], model_table=True)
 
         print("\nCurrent tables:")
         table_names = self.list_table_names()
@@ -77,6 +78,7 @@ class ModelarDBFlightClient:
 
 
 def encode_argument(argument: str) -> bytes:
+    """Encode the given argument as bytes and prepend the size of the argument as a 2-byte integer."""
     argument_bytes = str.encode(argument)
     argument_size = len(argument_bytes).to_bytes(2, byteorder="big")
 

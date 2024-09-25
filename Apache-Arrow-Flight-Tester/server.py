@@ -71,6 +71,10 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
 
 
 def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
+    """
+    Create a record batch with num_rows rows of randomly generated data for a table with one timestamp column,
+    three tag columns, and three field columns.
+    """
     schema = pyarrow.schema(
         [
             ("location", pyarrow.utf8()),
