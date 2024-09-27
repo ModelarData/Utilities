@@ -63,14 +63,9 @@ class ModelarDBFlightClient:
         ], model_table=True)
 
         print("\nCurrent tables:")
-        table_names = self.list_table_names()
-        print(table_names)
-
-        print(f"\nSchema for {table_names[0]}:")
-        print(self.get_schema(table_names[0]))
-
-        print(f"\nSchema for {table_names[1]}:")
-        print(self.get_schema(table_names[1]))
+        for table_name in self.list_table_names():
+            print(f"{table_name}:")
+            print(f"{self.get_schema(table_name)}\n")
 
 
 def encode_argument(argument: str) -> bytes:

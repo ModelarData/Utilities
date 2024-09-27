@@ -31,13 +31,16 @@ class ModelarDBManagerFlightClient(ModelarDBFlightClient):
         return response[0].body.to_pybytes()
 
     def remove_node(self, node_url: str) -> list[Result]:
-        """Remove the node with the given URL from the manager"""
+        """Remove the node with the given URL from the manager."""
         encoded_node_url = encode_argument(node_url)
 
         return self.do_action("RemoveNode", encoded_node_url)
 
     def query(self, query: str) -> None:
-        """Retrieve a cloud node that can execute the given query and execute the query on the node."""
+        """
+        Retrieve a cloud node that can execute the given query and execute the query on the node. It is assumed that
+        at least one cloud node is already registered with the manager.
+        """
         print("Retrieving cloud node that can execute the query...")
         query_descriptor = flight.FlightDescriptor.for_command(query)
         flight_info = self.flight_client.get_flight_info(query_descriptor)
