@@ -72,10 +72,6 @@ class ModelarDBFlightClient:
         print(f"\nSchema for {table_names[1]}:")
         print(self.get_schema(table_names[1]))
 
-    def drop_table(self, table_name: str) -> None:
-        """Drop the table in the server or manager with the given name."""
-        self.do_action("DropTable", str.encode(table_name))
-
 
 def encode_argument(argument: str) -> bytes:
     """Encode the given argument as bytes and prepend the size of the argument as a 2-byte integer."""
