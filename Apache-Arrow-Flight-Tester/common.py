@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pyarrow import flight, Schema
 from pyarrow._flight import FlightInfo, ActionType, Result
 
@@ -74,7 +76,20 @@ class ModelarDBFlightClient:
     def truncate_table(self, table_name: str) -> None:
         """Truncate the table with the given name in the server or manager."""
         self.do_action("TruncateTable", str.encode(table_name))
-    
+
+    def clean_up_tables(self, tables: list[str], operation: Literal["drop", "truncate"]) -> None:
+        """
+        Clean up the given tables by either dropping them or truncating them. If no tables are given, all tables
+        are dropped or truncated.
+        """
+        if len(tables) == 0:
+            tables = self.list_table_names()
+
+        print(f"Cleaning up {', '.join(tables)} using {operation}...")
+
+        for table_name in tables:
+            self.drop_table(table_name) if operation == "drop" else self.truncate_table(table_name)
+
 
 def encode_argument(argument: str) -> bytes:
     """Encode the given argument as bytes and prepend the size of the argument as a 2-byte integer."""
