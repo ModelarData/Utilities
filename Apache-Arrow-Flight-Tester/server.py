@@ -112,6 +112,7 @@ def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
 
 if __name__ == "__main__":
     server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999")
+    print(f"Node type: {server_client.node_type()}\n")
 
     server_client.create_test_tables()
     server_client.ingest_into_server_and_query_table("test_model_table_1", 10000)

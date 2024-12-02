@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pyarrow import flight, Schema
 from pyarrow._flight import FlightInfo, ActionType, Result
 
@@ -46,7 +48,7 @@ class ModelarDBFlightClient:
         """
         create_table = "CREATE MODEL TABLE" if model_table else "CREATE TABLE"
         sql = f"{create_table} {table_name}({', '.join([f'{column[0]} {column[1]}' for column in columns])})"
-        self.do_action("CommandStatementUpdate", str.encode(sql))
+        self.do_action("CreateTable", str.encode(sql))
 
     def create_test_tables(self) -> None:
         """
@@ -66,6 +68,32 @@ class ModelarDBFlightClient:
         for table_name in self.list_table_names():
             print(f"{table_name}:")
             print(f"{self.get_schema(table_name)}\n")
+
+    def drop_table(self, table_name: str) -> None:
+        """Drop the table with the given name from the server or manager."""
+        self.do_action("DropTable", str.encode(table_name))
+
+    def truncate_table(self, table_name: str) -> None:
+        """Truncate the table with the given name in the server or manager."""
+        self.do_action("TruncateTable", str.encode(table_name))
+
+    def clean_up_tables(self, tables: list[str], operation: Literal["drop", "truncate"]) -> None:
+        """
+        Clean up the given tables by either dropping them or truncating them. If no tables are given, all tables
+        are dropped or truncated.
+        """
+        if len(tables) == 0:
+            tables = self.list_table_names()
+
+        print(f"Cleaning up {', '.join(tables)} using {operation}...")
+
+        for table_name in tables:
+            self.drop_table(table_name) if operation == "drop" else self.truncate_table(table_name)
+
+    def node_type(self) -> str:
+        """Return the type of the node."""
+        node_type = self.do_action("NodeType", b"")
+        return node_type[0].body.to_pybytes().decode("utf-8")
 
 
 def encode_argument(argument: str) -> bytes:

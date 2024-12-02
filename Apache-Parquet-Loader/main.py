@@ -29,7 +29,7 @@ def create_model_table(flight_client, table_name, schema, error_bound):
     sql = f"CREATE MODEL TABLE {table_name} ({', '.join(columns)})"
 
     # Execute the CREATE MODEL TABLE command.
-    action = flight.Action("CommandStatementUpdate", str.encode(sql))
+    action = flight.Action("CreateTable", str.encode(sql))
     result = flight_client.do_action(action)
     return list(result)
 

@@ -98,7 +98,7 @@ impl Client {
         }
 
         let sql = format!("CREATE MODEL TABLE {TABLE_NAME} ({})", columns.join(", "));
-        let action = Action::new("CommandStatementUpdate", sql);
+        let action = Action::new("CreateTable", sql);
         self.flight_client.do_action(action).await?;
 
         Ok(())

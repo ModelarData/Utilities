@@ -55,6 +55,8 @@ class ModelarDBManagerFlightClient(ModelarDBFlightClient):
 
 if __name__ == "__main__":
     manager_client = ModelarDBManagerFlightClient("grpc://127.0.0.1:9998")
+    print(f"Node type: {manager_client.node_type()}\n")
+
     manager_client.create_test_tables()
 
     print(manager_client.initialize_database(["test_table_1"]))
