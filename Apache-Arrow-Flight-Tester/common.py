@@ -90,6 +90,11 @@ class ModelarDBFlightClient:
         for table_name in tables:
             self.drop_table(table_name) if operation == "drop" else self.truncate_table(table_name)
 
+    def node_type(self) -> str:
+        """Return the type of the node."""
+        node_type = self.do_action("NodeType", b"")
+        return node_type[0].body.to_pybytes().decode("utf-8")
+
 
 def encode_argument(argument: str) -> bytes:
     """Encode the given argument as bytes and prepend the size of the argument as a 2-byte integer."""
