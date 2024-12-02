@@ -48,7 +48,7 @@ class ModelarDBFlightClient:
         """
         create_table = "CREATE MODEL TABLE" if model_table else "CREATE TABLE"
         sql = f"{create_table} {table_name}({', '.join([f'{column[0]} {column[1]}' for column in columns])})"
-        self.do_action("CommandStatementUpdate", str.encode(sql))
+        self.do_action("CreateTable", str.encode(sql))
 
     def create_test_tables(self) -> None:
         """
