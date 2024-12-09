@@ -1,7 +1,8 @@
+import pprint
 from typing import Literal
 
 from pyarrow import flight, Schema
-from pyarrow._flight import FlightInfo, ActionType, Result
+from pyarrow._flight import FlightInfo, ActionType, Result, Ticket
 
 
 class ModelarDBFlightClient:
@@ -22,6 +23,13 @@ class ModelarDBFlightClient:
         response = self.flight_client.get_schema(upload_descriptor)
 
         return response.schema
+
+    def do_get(self, ticket: Ticket) -> None:
+        """Execute a SQL statement on the server and print the result."""
+        response = self.flight_client.do_get(ticket)
+
+        for batch in response:
+            pprint.pprint(batch.data.to_pydict())
 
     def do_action(self, action_type: str, action_body: bytes) -> list[Result]:
         """Wrapper around the do_action method of the FlightClient class."""
