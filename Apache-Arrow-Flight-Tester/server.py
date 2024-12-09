@@ -115,3 +115,5 @@ if __name__ == "__main__":
     print("\nCurrent configuration:")
     server_client.update_configuration("compressed_reserved_memory_in_bytes", "10000000")
     print(server_client.get_configuration())
+
+    server_client.clean_up_tables([], "drop")
