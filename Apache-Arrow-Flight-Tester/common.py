@@ -25,7 +25,7 @@ class ModelarDBFlightClient:
         return response.schema
 
     def do_get(self, ticket: Ticket) -> None:
-        """Execute a SQL statement on the server and print the result."""
+        """Wrapper around the do_get method of the FlightClient class."""
         response = self.flight_client.do_get(ticket)
 
         for batch in response:
