@@ -1,4 +1,3 @@
-import pprint
 import time
 from random import randrange
 
@@ -20,13 +19,6 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
 
         writer.write(record_batch)
         writer.close()
-
-    def do_get(self, ticket: Ticket) -> None:
-        """Execute a SQL query on the server and print the result."""
-        response = self.flight_client.do_get(ticket)
-
-        for batch in response:
-            pprint.pprint(batch.data.to_pydict())
 
     def collect_metrics(self) -> pd.DataFrame:
         """Collect metrics from the server and return them as a pandas DataFrame."""
@@ -123,3 +115,5 @@ if __name__ == "__main__":
     print("\nCurrent configuration:")
     server_client.update_configuration("compressed_reserved_memory_in_bytes", "10000000")
     print(server_client.get_configuration())
+
+    server_client.clean_up_tables([], "drop")

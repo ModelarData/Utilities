@@ -1,7 +1,8 @@
+import pprint
 from typing import Literal
 
 from pyarrow import flight, Schema
-from pyarrow._flight import FlightInfo, ActionType, Result
+from pyarrow._flight import FlightInfo, ActionType, Result, Ticket
 
 
 class ModelarDBFlightClient:
@@ -22,6 +23,13 @@ class ModelarDBFlightClient:
         response = self.flight_client.get_schema(upload_descriptor)
 
         return response.schema
+
+    def do_get(self, ticket: Ticket) -> None:
+        """Wrapper around the do_get method of the FlightClient class."""
+        response = self.flight_client.do_get(ticket)
+
+        for batch in response:
+            pprint.pprint(batch.data.to_pydict())
 
     def do_action(self, action_type: str, action_body: bytes) -> list[Result]:
         """Wrapper around the do_action method of the FlightClient class."""
@@ -48,7 +56,8 @@ class ModelarDBFlightClient:
         """
         create_table = "CREATE MODEL TABLE" if model_table else "CREATE TABLE"
         sql = f"{create_table} {table_name}({', '.join([f'{column[0]} {column[1]}' for column in columns])})"
-        self.do_action("CreateTable", str.encode(sql))
+
+        self.do_get(Ticket(sql))
 
     def create_test_tables(self) -> None:
         """
@@ -71,11 +80,11 @@ class ModelarDBFlightClient:
 
     def drop_table(self, table_name: str) -> None:
         """Drop the table with the given name from the server or manager."""
-        self.do_action("DropTable", str.encode(table_name))
+        self.do_get(Ticket(f"DROP TABLE {table_name}"))
 
     def truncate_table(self, table_name: str) -> None:
         """Truncate the table with the given name in the server or manager."""
-        self.do_action("TruncateTable", str.encode(table_name))
+        self.do_get(Ticket(f"TRUNCATE TABLE {table_name}"))
 
     def clean_up_tables(self, tables: list[str], operation: Literal["drop", "truncate"]) -> None:
         """
