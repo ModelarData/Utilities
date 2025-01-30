@@ -14,15 +14,16 @@ def table_exists(flight_client, table_name):
 
 
 def create_model_table(flight_client, table_name, schema, error_bound):
-    # Construct the CREATE MODEL TABLE string.
+    # Construct the CREATE MODEL TABLE string with column names quoted to also
+    # support special characters in column names such as spaces and punctuation.
     columns = []
     for field in schema:
         if field.type == pyarrow.timestamp("ms"):
-            columns.append(f"{field.name} TIMESTAMP")
+            columns.append(f"`{field.name}` TIMESTAMP")
         elif field.type == pyarrow.float32():
-            columns.append(f"{field.name} FIELD({error_bound}%)")
+            columns.append(f"`{field.name}` FIELD({error_bound}%)")
         elif field.type == pyarrow.string():
-            columns.append(f"{field.name} TAG")
+            columns.append(f"`{field.name}` TAG")
         else:
             raise ValueError(f"Unsupported Data Type: {field.type}")
 
@@ -38,30 +39,28 @@ def read_parquet_file_or_folder(path):
     # Read Apache Parquet file or folder.
     arrow_table = parquet.read_table(path)
 
-    # Ensure the schema only uses supported features.
+    # Ensure the schema only uses supported types.
     columns = []
     column_names = []
     for field in arrow_table.schema:
-        # Ensure that none of the field names contain whitespace.
-        safe_name = field.name.replace(" ", "_")
-        column_names.append(safe_name)
+        column_names.append(field.name)
 
         if field.type == pyarrow.float16() or field.type == pyarrow.float64():
             # Ensure fields are float32 as others are not supported.
-            columns.append((safe_name, pyarrow.float32()))
+            columns.append((field.name, pyarrow.float32()))
         elif field.type in [
             pyarrow.timestamp("s"),
             pyarrow.timestamp("us"),
             pyarrow.timestamp("ns"),
         ]:
             # Ensure timestamps are timestamp[ms] as others are not supported.
-            columns.append((safe_name, pyarrow.timestamp("ms")))
+            columns.append((field.name, pyarrow.timestamp("ms")))
         else:
-            columns.append((safe_name, field.type))
+            columns.append((field.name, field.type))
 
     safe_schema = pyarrow.schema(columns)
 
-    # Rename columns to remove whitespaces and cast them to remove float64.
+    # Cast the columns to the supported types.
     arrow_table = arrow_table.rename_columns(column_names)
     return arrow_table.cast(safe_schema)
 
