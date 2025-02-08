@@ -29,6 +29,11 @@ Utilities for simplifying development and testing:
   same schema for a set of error bounds. For each error bound the script automatically ingests the data set and computes 
   metrics that indicate how well ModelarDB compressed the data set.
 
+- [ModelarDB storage insights](ModelarDB-Storage-Insights) written in [Python 3](https://www.python.org/) to extract how
+  [ModelarDB](https://github.com/ModelarData/ModelarDB-RS) compresses each field stored in a model table. For a data
+  folder and model table, the script reads the Apache Parquet files and computes which type of models are used and how
+  much space each column in the stored Apache Parquet files uses.
+
 - [MQTT simulator](MQTT-Simulator) written in [Python 3](https://www.python.org/) to simulate the sending of packets 
   from sensors or devices to a broker. The simulator was originally forked from
   [DamascenoRafael/mqtt-simulator](https://github.com/DamascenoRafael/mqtt-simulator).
