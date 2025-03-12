@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# A pre-commit hook that ensures a Rust project contains no errors or warnings.
+# A pre-commit hook that ensures a Rust project with ast-grep rules and Python
+# bindings contains no errors or warnings.
 
 # Fail the entire hook immediately if any of the commands fails.
 set -e
@@ -10,12 +11,15 @@ profiles="dev release"
 
 # Ensure the following commands does not emit any errors or warnings.
 # - Compilers: cargo build
-# - Linters: cargo clippy and cargo machette
+# - Linters: ast-grep, cargo clippy, and cargo machette
 # - Documentation Generator: cargo doc
-# - Unit Tests and Integration Tests: cargo test
+# - Unit Tests and Integration Tests: cargo test and python unittest
 for profile in $profiles
 do
     echo "Profile $profile"
+    echo "Ast-grep Scan"
+    sg scan
+    echo
     echo "Cargo Build"
     RUSTFLAGS="-D warnings" cargo build --profile $profile --all-targets
     echo
@@ -23,11 +27,16 @@ do
     RUSTFLAGS="-D warnings" cargo clippy --profile $profile --all-targets
     echo
     echo "Cargo Doc"
-    RUSTDOCFLAGS="-D warnings" cargo doc --profile $profile
+    RUSTDOCFLAGS="-D warnings" cargo doc --profile $profile --no-deps
     echo
     echo "Cargo Machette"
     cargo machete --with-metadata
     echo
     echo "Cargo Test"
     RUSTFLAGS="-D warnings" cargo test --profile $profile --all-targets -- --nocapture
+    echo
+    echo "Python Test"
+    pushd "crates/modelardb_embedded/bindings/python" > /dev/null
+    python -m unittest --verbose
+    popd > /dev/null
 done
