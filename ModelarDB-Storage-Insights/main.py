@@ -74,7 +74,9 @@ def measure_file_and_its_columns(
         _ = results.execute(
             f"INSERT INTO model_type_use VALUES({field_column}, {model_type_id}, {segment_count})"
         )
-    for column_index, (column_name, python_size_in_bytes) in enumerate(python_size_in_bytes_per_column.items()):
+    for column_index, (column_name, python_size_in_bytes) in enumerate(
+        python_size_in_bytes_per_column.items()
+    ):
         _ = results.execute(
             f"INSERT INTO file_column VALUES({field_column}, {column_index}, '{column_name}', {python_size_in_bytes})"
         )
@@ -95,7 +97,27 @@ def write_table(configuration: Configuration, table: Table) -> int:
         return os.path.getsize(temp_file_path.name)
 
 
-def print_results(results: sqlite3.Connection):
+def read_column_indices_column_names(
+    data_folder: str, model_table_name: str
+) -> dict[int, str]:
+    model_table_field_columns = parquet.read_table(
+        sys.argv[1] + "/metadata/model_table_field_columns",
+        filters=[("table_name", "==", sys.argv[2])],
+    )
+    column_indices = model_table_field_columns.column("column_index")
+    column_names = model_table_field_columns.column("column_name")
+
+    column_indices_column_names = {}
+    for index in range(0, model_table_field_columns.num_rows):
+        column_index = column_indices[index].as_py()
+        column_name = column_names[index].as_py()
+        column_indices_column_names[column_index] = column_name
+    return column_indices_column_names
+
+
+def print_results(
+    column_indices_column_names: dict[int, str], results: sqlite3.Connection
+):
     field_columns = execute_and_return_value(
         "SELECT DISTINCT field_column FROM file ORDER BY field_column", results
     )
@@ -119,6 +141,7 @@ def print_results(results: sqlite3.Connection):
 
         print_total_size_in_bytes(
             field_column,
+            column_indices_column_names[field_column],
             model_types_used,
             rust_size_in_bytes,
             python_size_in_bytes,
@@ -142,6 +165,7 @@ def print_results(results: sqlite3.Connection):
 
     print_total_size_in_bytes(
         "All",
+        "Summed",
         model_types_used,
         rust_size_in_bytes,
         python_size_in_bytes,
@@ -163,13 +187,14 @@ def execute_and_return_value(query: str, results: sqlite3.Connection):
 
 
 def print_total_size_in_bytes(
-    field_column: int | str,
+    field_column: int,
+    field_name: str,
     model_types_used: dict[str, int],
     rust_size_in_bytes: int,
     python_size_in_bytes: int,
     python_size_in_bytes_per_column: dict[str, int],
 ):
-    print(f"Field Column: {field_column}")
+    print(f"Field Column: {field_column} - {field_name}")
     print("------------------------------------------")
 
     for model_type_id, count in model_types_used.items():
@@ -211,11 +236,13 @@ def main():
     )
     results.commit()
 
-    # TODO: read the name of field columns when the issue is fixed.
-    # Link to issue: https://github.com/apache/arrow/issues/45283
     configuration = Configuration(sys.argv[1], sys.argv[2])
     list_and_process_files(configuration, results)
-    print_results(results)
+
+    column_indices_column_names = read_column_indices_column_names(
+        sys.argv[1], sys.argv[2]
+    )
+    print_results(column_indices_column_names, results)
 
 
 if __name__ == "__main__":
