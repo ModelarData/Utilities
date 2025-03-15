@@ -13,6 +13,21 @@ MODEL_TYPE_ID_TO_NAME = ["PMC_Mean", "Swing", "Gorilla"]
 
 
 @dataclass
+class Configuration:
+    data_folder: str
+    model_table_name: str
+    data_page_size: int =16384
+    row_group_size: int=65536
+    column_encoding: str="PLAIN"
+    compression: str="ZSTD"
+    use_dictionary: bool=False
+    write_statistics: bool=False
+
+    def model_table_path(self) -> str:
+        return self.data_folder + os.sep + "tables" + os.sep + self.model_table_name
+
+
+@dataclass
 class FileResult:
     file_path: str
     field_column: int
@@ -22,29 +37,30 @@ class FileResult:
     python_size_in_bytes_per_column: dict[str, int]
 
 
-def list_and_process_files(model_table_path: str) -> [FileResult]:
+def list_and_process_files(configuration: Configuration) -> [FileResult]:
     file_results = []
 
+    model_table_path = configuration.model_table_path()
     for dirpath, _dirnames, filenames in os.walk(model_table_path):
         for filename in filenames:
             if not filename.endswith(".parquet"):
                 continue
 
             file_path = os.path.join(dirpath, filename)
-            file_result = measure_file_and_its_columns(file_path)
+            file_result = measure_file_and_its_columns(configuration, file_path)
             file_results.append(file_result)
 
     return file_results
 
 
-def measure_file_and_its_columns(file_path: str) -> FileResult:
+def measure_file_and_its_columns(configuration: Configuration, file_path: str) -> FileResult:
     table = parquet.read_table(file_path)
 
     field_column_str = file_path.split(os.sep)[-2]
     field_column = int(field_column_str[field_column_str.rfind("=") + 1 :])
 
     rust_size_in_bytes = os.path.getsize(file_path)
-    python_size_in_bytes = write_table(table)
+    python_size_in_bytes = write_table(configuration, table)
 
     model_types_used = Counter()
     python_size_in_bytes_per_column = Counter()
@@ -57,7 +73,7 @@ def measure_file_and_its_columns(file_path: str) -> FileResult:
 
         column_schema = pyarrow.schema(pyarrow.struct([field]))
         column_table = Table.from_arrays([column], schema=column_schema)
-        python_size_in_bytes_per_column[field.name] = write_table(column_table)
+        python_size_in_bytes_per_column[field.name] = write_table(configuration, column_table)
 
     return FileResult(
         file_path,
@@ -69,17 +85,17 @@ def measure_file_and_its_columns(file_path: str) -> FileResult:
     )
 
 
-def write_table(table: Table) -> int:
+def write_table(configuration: Configuration, table: Table) -> int:
     with tempfile.NamedTemporaryFile() as temp_file_path:
         parquet.write_table(
             table,
             temp_file_path.name,
-            data_page_size=16384,
-            row_group_size=65536,
-            column_encoding="PLAIN",
-            compression="ZSTD",
-            use_dictionary=False,
-            write_statistics=False,
+            data_page_size=configuration.data_page_size,
+            row_group_size=configuration.row_group_size,
+            column_encoding=configuration.column_encoding,
+            compression=configuration.compression,
+            use_dictionary=configuration.use_dictionary,
+            write_statistics=configuration.write_statistics,
         )
         return os.path.getsize(temp_file_path.name)
 
@@ -177,16 +193,14 @@ def bytes_to_mib(size_in_bytes: int) -> int:
 
 def main():
     if len(sys.argv) != 3:
-        print(f"python3 {__file__} data_folder table_name")
+        print(f"python3 {__file__} data_folder model_table_name")
         return
 
-    data_folder = sys.argv[1]
-    model_table = sys.argv[2]
 
     # TODO: read the name of field columns when the issue is fixed.
     # Link to issue: https://github.com/apache/arrow/issues/45283
-    model_table_path = data_folder + os.sep + "tables" + os.sep + model_table
-    file_results = list_and_process_files(model_table_path=model_table_path)
+    configuration = Configuration(sys.argv[1], sys.argv[2])
+    file_results = list_and_process_files(configuration)
     print_file_results(file_results)
 
 
