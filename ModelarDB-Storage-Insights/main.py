@@ -1,5 +1,6 @@
 import os
 import sys
+import sqlite3
 import tempfile
 from dataclasses import dataclass
 from collections import Counter
@@ -9,6 +10,7 @@ from pyarrow import parquet
 from pyarrow import Table
 
 
+# Must match IDs used by modelardb_compression.
 MODEL_TYPE_ID_TO_NAME = ["PMC_Mean", "Swing", "Gorilla"]
 
 
@@ -16,44 +18,33 @@ MODEL_TYPE_ID_TO_NAME = ["PMC_Mean", "Swing", "Gorilla"]
 class Configuration:
     data_folder: str
     model_table_name: str
-    data_page_size: int =16384
-    row_group_size: int=65536
-    column_encoding: str="PLAIN"
-    compression: str="ZSTD"
-    use_dictionary: bool=False
-    write_statistics: bool=False
+    data_page_size: int = 16384
+    row_group_size: int = 65536
+    column_encoding: str = "PLAIN"
+    compression: str = "ZSTD"
+    use_dictionary: bool = False
+    write_statistics: bool = False
 
     def model_table_path(self) -> str:
         return self.data_folder + os.sep + "tables" + os.sep + self.model_table_name
 
 
-@dataclass
-class FileResult:
-    file_path: str
-    field_column: int
-    model_types_used: dict[str, int]
-    rust_size_in_bytes: int
-    python_size_in_bytes: int
-    python_size_in_bytes_per_column: dict[str, int]
-
-
-def list_and_process_files(configuration: Configuration) -> [FileResult]:
-    file_results = []
-
-    model_table_path = configuration.model_table_path()
-    for dirpath, _dirnames, filenames in os.walk(model_table_path):
+def list_and_process_files(configuration: Configuration, results: sqlite3.Connection):
+    result_id = 1
+    top = configuration.model_table_path()
+    for dirpath, _dirnames, filenames in os.walk(top):
         for filename in filenames:
             if not filename.endswith(".parquet"):
                 continue
 
             file_path = os.path.join(dirpath, filename)
-            file_result = measure_file_and_its_columns(configuration, file_path)
-            file_results.append(file_result)
-
-    return file_results
+            measure_file_and_its_columns(configuration, file_path, result_id, results)
+            result_id += 1
 
 
-def measure_file_and_its_columns(configuration: Configuration, file_path: str) -> FileResult:
+def measure_file_and_its_columns(
+    configuration: Configuration, file_path: str, result_id, results: sqlite3.Connection
+):
     table = parquet.read_table(file_path)
 
     field_column_str = file_path.split(os.sep)[-2]
@@ -68,21 +59,25 @@ def measure_file_and_its_columns(configuration: Configuration, file_path: str) -
         column = table.column(field.name)
         if field.name == "model_type_id":
             for value in column:
-                model_type_name = MODEL_TYPE_ID_TO_NAME[value.as_py()]
-                model_types_used[model_type_name] += 1
+                model_types_used[value.as_py()] += 1
 
         column_schema = pyarrow.schema(pyarrow.struct([field]))
         column_table = Table.from_arrays([column], schema=column_schema)
-        python_size_in_bytes_per_column[field.name] = write_table(configuration, column_table)
+        python_size_in_bytes_per_column[field.name] = write_table(
+            configuration, column_table
+        )
 
-    return FileResult(
-        file_path,
-        field_column,
-        model_types_used,
-        rust_size_in_bytes,
-        python_size_in_bytes,
-        python_size_in_bytes_per_column,
+    _ = results.execute(
+        f"INSERT INTO file VALUES({field_column}, {rust_size_in_bytes}, {python_size_in_bytes})"
     )
+    for model_type_id, segment_count in model_types_used.items():
+        _ = results.execute(
+            f"INSERT INTO model_type_use VALUES({field_column}, {model_type_id}, {segment_count})"
+        )
+    for column_index, (column_name, python_size_in_bytes) in enumerate(python_size_in_bytes_per_column.items()):
+        _ = results.execute(
+            f"INSERT INTO file_column VALUES({field_column}, {column_index}, '{column_name}', {python_size_in_bytes})"
+        )
 
 
 def write_table(configuration: Configuration, table: Table) -> int:
@@ -100,65 +95,71 @@ def write_table(configuration: Configuration, table: Table) -> int:
         return os.path.getsize(temp_file_path.name)
 
 
-def print_file_results(file_results: list[FileResult]):
-    field_model_types_used = Counter()
-    field_rust_size_in_bytes = 0
-    field_python_size_in_bytes = 0
-    field_size_in_bytes_per_column = Counter()
-
-    total_model_types_used = Counter()
-    total_rust_size_in_bytes = 0
-    total_python_size_in_bytes = 0
-    total_size_in_bytes_per_column = Counter()
-
-    file_results.sort(key=lambda fr: fr.field_column)
-
-    last_field_column = file_results[0].field_column
-    for file_result in file_results:
-        if last_field_column != file_result.field_column:
-            print_total_size_in_bytes(
-                last_field_column,
-                field_model_types_used,
-                field_rust_size_in_bytes,
-                field_python_size_in_bytes,
-                field_size_in_bytes_per_column,
-            )
-            field_model_types_used = Counter()
-            field_rust_size_in_bytes = 0
-            field_python_size_in_bytes = 0
-            field_size_in_bytes_per_column = Counter()
-
-        field_model_types_used.update(file_result.model_types_used)
-        field_rust_size_in_bytes += file_result.rust_size_in_bytes
-        field_python_size_in_bytes += file_result.python_size_in_bytes
-        field_size_in_bytes_per_column.update(
-               file_result.python_size_in_bytes_per_column
+def print_results(results: sqlite3.Connection):
+    field_columns = execute_and_return_value(
+        "SELECT DISTINCT field_column FROM file ORDER BY field_column", results
+    )
+    for field_column in field_columns:
+        model_types_used = execute_and_return_value(
+            f"SELECT model_type_id, SUM(segment_count) FROM model_type_use WHERE field_column = {field_column} GROUP BY model_type_id ORDER BY model_type_id",
+            results,
+        )
+        rust_size_in_bytes = execute_and_return_value(
+            f"SELECT SUM(rust_size_in_bytes) FROM file WHERE field_column = {field_column}",
+            results,
+        )
+        python_size_in_bytes = execute_and_return_value(
+            f"SELECT SUM(python_size_in_bytes) FROM file WHERE field_column = {field_column}",
+            results,
+        )
+        python_size_in_bytes_per_column = execute_and_return_value(
+            f"SELECT column_name, SUM(python_size_in_bytes) FROM file_column WHERE field_column = {field_column} GROUP BY column_index ORDER BY column_index",
+            results,
         )
 
-        total_model_types_used.update(file_result.model_types_used)
-        total_rust_size_in_bytes += file_result.rust_size_in_bytes
-        total_python_size_in_bytes += file_result.python_size_in_bytes
-        total_size_in_bytes_per_column.update(
-               file_result.python_size_in_bytes_per_column
+        print_total_size_in_bytes(
+            field_column,
+            model_types_used,
+            rust_size_in_bytes,
+            python_size_in_bytes,
+            python_size_in_bytes_per_column,
         )
 
-        last_field_column = file_result.field_column
-
-    print_total_size_in_bytes(
-        last_field_column,
-        field_model_types_used,
-        field_rust_size_in_bytes,
-        field_python_size_in_bytes,
-        field_size_in_bytes_per_column,
+    model_types_used = execute_and_return_value(
+        f"SELECT model_type_id, SUM(segment_count) FROM model_type_use GROUP BY model_type_id ORDER BY model_type_id",
+        results,
+    )
+    rust_size_in_bytes = execute_and_return_value(
+        f"SELECT SUM(rust_size_in_bytes) FROM file", results
+    )
+    python_size_in_bytes = execute_and_return_value(
+        f"SELECT SUM(python_size_in_bytes) FROM file", results
+    )
+    python_size_in_bytes_per_column = execute_and_return_value(
+        f"SELECT column_name, SUM(python_size_in_bytes) FROM file_column GROUP BY column_index ORDER BY column_index",
+        results,
     )
 
     print_total_size_in_bytes(
         "All",
-        total_model_types_used,
-        total_rust_size_in_bytes,
-        total_python_size_in_bytes,
-        total_size_in_bytes_per_column,
+        model_types_used,
+        rust_size_in_bytes,
+        python_size_in_bytes,
+        python_size_in_bytes_per_column,
     )
+
+
+def execute_and_return_value(query: str, results: sqlite3.Connection):
+    cursor = results.execute(query)
+    values = cursor.fetchall()
+    cursor.close()
+
+    if len(values) == 1 and len(values[0]) == 1:
+        return values[0][0]
+    elif len(values) > 1 and len(values[0]) == 1:
+        return list(map(lambda value: value[0], values))
+    else:
+        return dict(values)
 
 
 def print_total_size_in_bytes(
@@ -166,17 +167,18 @@ def print_total_size_in_bytes(
     model_types_used: dict[str, int],
     rust_size_in_bytes: int,
     python_size_in_bytes: int,
-    size_in_bytes_per_column: dict[str, int],
+    python_size_in_bytes_per_column: dict[str, int],
 ):
     print(f"Field Column: {field_column}")
     print("------------------------------------------")
 
-    for model_type_name, count in model_types_used.items():
+    for model_type_id, count in model_types_used.items():
+        model_type_name = MODEL_TYPE_ID_TO_NAME[model_type_id]
         print(f"- {model_type_name:<20} {count:>10} Segments")
     print("------------------------------------------")
 
     summed_size_in_bytes = 0
-    for column, size in size_in_bytes_per_column.items():
+    for column, size in python_size_in_bytes_per_column.items():
         print(f"- {column:<25} {bytes_to_mib(size):>10} MiB")
         summed_size_in_bytes += size
 
@@ -187,7 +189,7 @@ def print_total_size_in_bytes(
     print()
 
 
-def bytes_to_mib(size_in_bytes: int) -> int:
+def bytes_to_mib(size_in_bytes: int) -> float:
     return round(size_in_bytes / 1024 / 1024, 2)
 
 
@@ -196,12 +198,24 @@ def main():
         print(f"python3 {__file__} data_folder model_table_name")
         return
 
+    # All results are stored in SQLite to simply aggregating them..
+    results: sqlite3.Connection = sqlite3.connect(":memory:")
+    _ = results.execute(
+        """CREATE TABLE file(field_column INTEGER, rust_size_in_bytes INTEGER, python_size_in_bytes INTEGER) STRICT"""
+    )
+    _ = results.execute(
+        """CREATE TABLE model_type_use(field_column INTEGER, model_type_id INTEGER, segment_count INTEGER) STRICT"""
+    )
+    _ = results.execute(
+        """CREATE TABLE file_column(field_column INTEGER, column_index INTEGER, column_name TEXT, python_size_in_bytes INTEGER) STRICT"""
+    )
+    results.commit()
 
     # TODO: read the name of field columns when the issue is fixed.
     # Link to issue: https://github.com/apache/arrow/issues/45283
     configuration = Configuration(sys.argv[1], sys.argv[2])
-    file_results = list_and_process_files(configuration)
-    print_file_results(file_results)
+    list_and_process_files(configuration, results)
+    print_results(results)
 
 
 if __name__ == "__main__":
