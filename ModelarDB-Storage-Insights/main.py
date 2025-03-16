@@ -223,7 +223,7 @@ def main():
         print(f"python3 {__file__} data_folder model_table_name")
         return
 
-    # All results are stored in SQLite to simply aggregating them..
+    # All results are stored in SQLite to simplify aggregating them.
     results: sqlite3.Connection = sqlite3.connect(":memory:")
     _ = results.execute(
         """CREATE TABLE file(field_column INTEGER, rust_size_in_bytes INTEGER, python_size_in_bytes INTEGER) STRICT"""
