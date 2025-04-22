@@ -1,5 +1,5 @@
 # Utilities
-Utilities for simplifying development and testing:
+Utilities for simplifying development and testing developed in this repository:
 
 - [Apache Arrow Flight manager testing script](Apache-Arrow-Flight-Tester/manager.py) written in
   [Python 3](https://www.python.org/) to test the different endpoints of the ModelarDB manager Apache Arrow Flight API.
@@ -34,14 +34,16 @@ Utilities for simplifying development and testing:
   folder and model table, the script reads the Apache Parquet files and computes which model types are used and how much
   space each column in the stored Apache Parquet files uses.
 
-- [MQTT simulator](MQTT-Simulator) written in [Python 3](https://www.python.org/) to simulate the sending of packets
-  from sensors or devices to a broker. The simulator was originally forked from
-  [DamascenoRafael/mqtt-simulator](https://github.com/DamascenoRafael/mqtt-simulator).
-
 - [ModelarDB compression profiler script](Profile-ModelarDB-Compression) written in [Python 3](https://www.python.org/)
   to compute how much storage each part of [ModelarDB](https://github.com/ModelarData/ModelarDB-RS)'s compressed format
   uses at the logical database, table, and column level when stored in Apache Parquet files ordered by `univariate_id`
   and `start_time` and compressed using Zstandard.
+  
+## Other Tools
+Utilities for simplifying development and testing developed by other developers:
+
+- [DamascenoRafael/mqtt-simulator](https://github.com/DamascenoRafael/mqtt-simulator) written in 
+  [Python 3](https://www.python.org/) to simulate the sending of packets from sensors or devices to a broker.
 
 ## License
 Unless otherwise stated, the utilities in this repository are licensed under version 2.0 of the Apache License and a
