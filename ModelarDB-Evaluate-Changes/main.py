@@ -56,6 +56,10 @@ def replace_lines(path, start, end, new_lines):
     with open(path, "r") as f:
         lines = f.readlines()
 
+    # enumerate() starts at zero and start and end is one or above.
+    start -= 1
+    end -= 1
+
     with open(path, "w") as f:
         for line_number, line in enumerate(lines):
             if line_number >= start and line_number < end:
@@ -222,7 +226,11 @@ if __name__ == "__main__":
     # Read changes.
     (file_path, start, end, changes) = read_changes(modelardb_folder, sys.argv[2])
     if not os.path.isfile(file_path):
-        print("ERROR: file to change does not exist.")
+        print("ERROR: the file to change does not exist.")
+        sys.exit(1)
+
+    if start <= 0 or end <= 0:
+        print("ERROR: the value of start or end is not positive.")
         sys.exit(1)
 
     # Compute absolute paths.
