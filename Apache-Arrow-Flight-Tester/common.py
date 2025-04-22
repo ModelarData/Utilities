@@ -112,8 +112,10 @@ class ModelarDBFlightClient:
         print(f"Cleaning up {', '.join(tables)} using {operation}...")
 
         for table_name in tables:
-            self.drop_table(table_name) if operation == "drop" else self.truncate_table(
-                table_name
+            (
+                self.drop_table(table_name)
+                if operation == "drop"
+                else self.truncate_table(table_name)
             )
 
     def node_type(self) -> str:
