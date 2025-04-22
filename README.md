@@ -34,11 +34,6 @@ Utilities for simplifying development and testing developed in this repository:
   folder and model table, the script reads the Apache Parquet files and computes which model types are used and how much
   space each column in the stored Apache Parquet files uses.
 
-- [ModelarDB compression profiler script](Profile-ModelarDB-Compression) written in [Python 3](https://www.python.org/)
-  to compute how much storage each part of [ModelarDB](https://github.com/ModelarData/ModelarDB-RS)'s compressed format
-  uses at the logical database, table, and column level when stored in Apache Parquet files ordered by `univariate_id`
-  and `start_time` and compressed using Zstandard.
-  
 ## Other Tools
 Utilities for simplifying development and testing developed by other developers:
 
