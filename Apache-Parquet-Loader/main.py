@@ -82,7 +82,7 @@ def do_put_arrow_table(flight_client, table_name, arrow_table):
 if __name__ == "__main__":
     if len(sys.argv) != 4 and len(sys.argv) != 5:
         print(
-            f"usage: {sys.argv[0]} host table parquet_file_or_folder [relative_error_bound]"
+            f"usage: {sys.argv[0]} host time_series_table_name parquet_file_or_folder [relative_error_bound]"
         )
         sys.exit(1)
 
