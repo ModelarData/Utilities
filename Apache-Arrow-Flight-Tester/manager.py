@@ -68,6 +68,6 @@ if __name__ == "__main__":
     print(manager_client.register_node("grpc://127.0.0.1:9999", "edge"))
     print(manager_client.remove_node("grpc://127.0.0.1:9999"))
 
-    manager_client.query("SELECT * FROM test_model_table_1 LIMIT 5")
+    manager_client.query("SELECT * FROM test_time_series_table_1 LIMIT 5")
 
     manager_client.clean_up_tables([], "drop")

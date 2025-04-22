@@ -111,7 +111,7 @@ if __name__ == "__main__":
     print(f"Node type: {server_client.node_type()}\n")
 
     server_client.create_test_tables()
-    server_client.ingest_into_server_and_query_table("test_model_table_1", 10000)
+    server_client.ingest_into_server_and_query_table("test_time_series_table_1", 10000)
 
     print("\nCurrent metrics:")
     print(server_client.collect_metrics().to_string())

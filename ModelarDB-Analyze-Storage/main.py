@@ -20,7 +20,7 @@ MODEL_TYPE_ID_TO_NAME = ["PMC_Mean", "Swing", "Gorilla"]
 @dataclass
 class Configuration:
     data_folder: str
-    model_table_name: str
+    time_series_table_name: str
     data_page_size: int = 16384
     row_group_size: int = 65536
     column_encoding: str = "PLAIN"
@@ -28,13 +28,13 @@ class Configuration:
     use_dictionary: bool = False
     write_statistics: bool = False
 
-    def model_table_path(self) -> str:
-        return self.data_folder + os.sep + "tables" + os.sep + self.model_table_name
+    def time_series_table_path(self) -> str:
+        return self.data_folder + os.sep + "tables" + os.sep + self.time_series_table_name
 
 
 def list_and_process_files(configuration: Configuration, results: sqlite3.Connection):
     result_id = 1
-    top = configuration.model_table_path()
+    top = configuration.time_series_table_path()
     for dirpath, _dirnames, filenames in os.walk(top):
         for filename in filenames:
             if not filename.endswith(".parquet"):
@@ -101,17 +101,17 @@ def write_table(configuration: Configuration, table: Table) -> int:
 
 
 def read_column_indices_column_names(
-    data_folder: str, model_table_name: str
+    data_folder: str, time_series_table_name: str
 ) -> dict[int, str]:
-    model_table_field_columns = parquet.read_table(
-        sys.argv[1] + "/metadata/model_table_field_columns",
+    time_series_table_field_columns = parquet.read_table(
+        sys.argv[1] + "/metadata/time_series_table_field_columns",
         filters=[("table_name", "==", sys.argv[2])],
     )
-    column_indices = model_table_field_columns.column("column_index")
-    column_names = model_table_field_columns.column("column_name")
+    column_indices = time_series_table_field_columns.column("column_index")
+    column_names = time_series_table_field_columns.column("column_name")
 
     column_indices_column_names = {}
-    for index in range(0, model_table_field_columns.num_rows):
+    for index in range(0, time_series_table_field_columns.num_rows):
         column_index = column_indices[index].as_py()
         column_name = column_names[index].as_py()
         column_indices_column_names[column_index] = column_name
@@ -223,7 +223,7 @@ def bytes_to_mib(size_in_bytes: int) -> float:
 
 def main():
     if len(sys.argv) != 3:
-        print(f"python3 {__file__} data_folder model_table_name")
+        print(f"python3 {__file__} data_folder time_series_table_name")
         return
 
     # All results are stored in SQLite to simplify aggregating them.

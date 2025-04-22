@@ -50,21 +50,22 @@ class ModelarDBFlightClient:
         return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
     def create_table(
-        self, table_name: str, columns: list[tuple[str, str]], model_table=False
+        self, table_name: str, columns: list[tuple[str, str]], time_series_table=False
     ) -> None:
         """
         Create a table in the server or manager with the given name and columns. Each pair in columns should have the
         format (column_name, column_type).
         """
-        create_table = "CREATE MODEL TABLE" if model_table else "CREATE TABLE"
+        create_table = "CREATE TIME SERIES TABLE" if time_series_table else "CREATE TABLE"
         sql = f"{create_table} {table_name}({', '.join([f'{column[0]} {column[1]}' for column in columns])})"
 
         self.do_get(Ticket(sql))
 
     def create_test_tables(self) -> None:
         """
-        Create a table and a model table using the flight client, print the current tables to ensure the created tables are
-        included, and print the schema for the created table and model table to ensure the tables are created correctly.
+        Create a table and a time series table using the flight client, print the current tables to ensure the created
+        tables are included, and print the schema for the created table and time series table to ensure the tables are
+        created correctly.
         """
         print("Creating test tables...")
 
@@ -73,7 +74,7 @@ class ModelarDBFlightClient:
             [("timestamp", "TIMESTAMP"), ("values", "REAL"), ("metadata", "REAL")],
         )
         self.create_table(
-            "test_model_table_1",
+            "test_time_series_table_1",
             [
                 ("location", "TAG"),
                 ("install_year", "TAG"),
@@ -83,7 +84,7 @@ class ModelarDBFlightClient:
                 ("wind_speed", "FIELD"),
                 ("temperature", "FIELD(5%)"),
             ],
-            model_table=True,
+            time_series_table=True,
         )
 
         print("\nCurrent tables:")

@@ -13,9 +13,10 @@ def table_exists(flight_client, table_name):
     return [bytes(table_name, "UTF-8")] in tables
 
 
-def create_model_table(flight_client, table_name, schema, error_bound):
-    # Construct the CREATE MODEL TABLE string with column names quoted to also
-    # support special characters in column names such as spaces and punctuation.
+def create_time_series_table(flight_client, table_name, schema, error_bound):
+    # Construct the CREATE TIME SERIES TABLE string with column names
+    # quoted to also support special characters in column names such
+    # as spaces and punctuation.
     columns = []
     for field in schema:
         if field.type == pyarrow.timestamp("ms"):
@@ -27,9 +28,9 @@ def create_model_table(flight_client, table_name, schema, error_bound):
         else:
             raise ValueError(f"Unsupported Data Type: {field.type}")
 
-    sql = f"CREATE MODEL TABLE {table_name} ({', '.join(columns)})"
+    sql = f"CREATE TIME SERIES TABLE {table_name} ({', '.join(columns)})"
 
-    # Execute the CREATE MODEL TABLE command.
+    # Execute the CREATE TIME SERIES TABLE command.
     ticket = flight.Ticket(str.encode(sql))
     result = flight_client.do_get(ticket)
     return list(result)
@@ -99,7 +100,7 @@ if __name__ == "__main__":
 
     arrow_table = read_parquet_file_or_folder(parquet_files[0])
     if not table_exists(flight_client, table_name):
-        create_model_table(flight_client, table_name, arrow_table.schema, error_bound)
+        create_time_series_table(flight_client, table_name, arrow_table.schema, error_bound)
 
     for index, parquet_file in enumerate(parquet_files):
         print(f"- Processing {parquet_file} ({index + 1} of {len(parquet_files)})")
