@@ -161,12 +161,11 @@ def send_sigint_to_process(process):
 
 
 def append_finished_result(
-    output_file, current_change, changes, ingestion_time, compaction_time, query_execution_times, data_folder_size
+    output_file, current_change, changes, ingestion_time, query_execution_times, data_folder_size
 ):
     results = {
         "changes": changes,
         "ingestion_time_in_seconds": ingestion_time,
-        "compaction_time_in_seconds": compaction_time,
         "data_folder_size_in_kib": data_folder_size,
     }
     results.update(query_execution_times)
@@ -268,16 +267,6 @@ if __name__ == "__main__":
             print_separator(current_change, last_change)
             continue
 
-        # Measure compaction time in seconds.
-        with tempfile.NamedTemporaryFile("w+") as small_select_query:
-            small_select_query.write(f"SELECT * FROM {TABLE_NAME} LIMIT 1")
-            small_select_query.flush()
-            compaction_time = execute_queries(small_select_query.name)
-            if not compaction_time:
-                print("ERROR: failed to compact files.")
-                print_separator(current_change, last_change)
-                continue
-
         # Measure query time in seconds.
         query_execution_times = {}
         for query_set in query_sets:
@@ -305,7 +294,6 @@ if __name__ == "__main__":
             current_change,
             changes,
             ingestion_time,
-            compaction_time,
             query_execution_times,
             data_folder_size,
         )
