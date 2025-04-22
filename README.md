@@ -24,11 +24,6 @@ Utilities for simplifying development and testing developed in this repository:
 - [Git Hooks](Git-Hooks) written in different scripting languages to ensure that the state of a repository is correct
   before or after a specific action has been performed.
 
-- [ModelarDB evaluator](ModelarDB-Evaluator) written in [Rust](https://www.rust-lang.org/) to evaluate how well
-  [ModelarDB](https://github.com/ModelarData/ModelarDB-RS) compresses a data set stored in Apache Parquet files with the
-  same schema for a set of error bounds. For each error bound the script automatically ingests the data set and computes
-  metrics that indicate how well ModelarDB compressed the data set.
-
 - [ModelarDB storage insights](ModelarDB-Storage-Insights) written in [Python 3](https://www.python.org/) to extract how
   [ModelarDB](https://github.com/ModelarData/ModelarDB-RS) compresses each field stored in a model table. For a data
   folder and model table, the script reads the Apache Parquet files and computes which model types are used and how much
