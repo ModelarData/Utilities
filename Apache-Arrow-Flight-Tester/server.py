@@ -34,7 +34,9 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         response = self.do_action("GetConfiguration", b"")
 
         batch_bytes = response[0].body.to_pybytes()
-        configuration_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
+        configuration_df = pyarrow.ipc.RecordBatchStreamReader(
+            batch_bytes
+        ).read_pandas()
 
         return configuration_df
 
@@ -46,7 +48,9 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         action_body = encoded_setting + encoded_setting_value
         return self.do_action("UpdateConfiguration", action_body)
 
-    def ingest_into_server_and_query_table(self, table_name: str, num_rows: int) -> None:
+    def ingest_into_server_and_query_table(
+        self, table_name: str, num_rows: int
+    ) -> None:
         """
         Ingest num_rows rows into the table, flush the memory of the server, and query the first five rows of the table.
         """
@@ -113,7 +117,9 @@ if __name__ == "__main__":
     print(server_client.collect_metrics().to_string())
 
     print("\nCurrent configuration:")
-    server_client.update_configuration("compressed_reserved_memory_in_bytes", "10000000")
+    server_client.update_configuration(
+        "compressed_reserved_memory_in_bytes", "10000000"
+    )
     print(server_client.get_configuration())
 
     server_client.clean_up_tables([], "drop")

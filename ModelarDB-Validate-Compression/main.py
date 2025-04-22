@@ -138,8 +138,9 @@ def compute_and_print_metrics(
     # The length of each pair of timestamp and value columns should always be
     # equal as this is required by both Apache Parquet files and Apache Arrow
     # RecordBatches, however, it is checked just to be absolutely sure it is.
-    if len(test_data_timestamp_column) != len(decompressed_timestamp_column) \
-       or len(test_data_field_column) != len(decompressed_field_column):
+    if len(test_data_timestamp_column) != len(decompressed_timestamp_column) or len(
+        test_data_field_column
+    ) != len(decompressed_field_column):
         print(
             (
                 "ERROR: the length of the columns in the test data "
@@ -166,8 +167,9 @@ def compute_and_print_metrics(
             )
             return
 
-        if test_data_value == decompressed_value or \
-           (math.isnan(test_data_value) and math.isnan(decompressed_value)):
+        if test_data_value == decompressed_value or (
+            math.isnan(test_data_value) and math.isnan(decompressed_value)
+        ):
             equal_values += 1
             difference = 0.0
             actual_error_ratio = 0.0
@@ -222,25 +224,36 @@ def compute_and_print_metrics(
     for ceiled_error in range(0, math.ceil(max_actual_error) + 1):
         print(f" {ceiled_error}% {ceiled_actual_error_counter[ceiled_error]} ", end="")
 
-    if ceiled_actual_error_counter['UNDEFINED'] != 0:
+    if ceiled_actual_error_counter["UNDEFINED"] != 0:
         print(f" Undefined {ceiled_actual_error_counter['UNDEFINED']}")
     else:
         print()
 
     print_data_points_if_any(
         "- Exceeded Error Bound (Timestamp, Test Data Value, Decompressed Value):",
-        indices_of_values_above_error_bound, test_data_timestamp_column,
-        test_data_field_column, decompressed_field_column)
+        indices_of_values_above_error_bound,
+        test_data_timestamp_column,
+        test_data_field_column,
+        decompressed_field_column,
+    )
 
     print_data_points_if_any(
         "- Undefined Actual Error (Timestamp, Test Data Value, Decompressed Value):",
-        indices_of_values_with_undefined_error, test_data_timestamp_column,
-        test_data_field_column, decompressed_field_column)
+        indices_of_values_with_undefined_error,
+        test_data_timestamp_column,
+        test_data_field_column,
+        decompressed_field_column,
+    )
     print()
 
 
-def print_data_points_if_any(header, indices, test_data_timestamp_column,
-                             test_data_field_column, decompressed_field_column):
+def print_data_points_if_any(
+    header,
+    indices,
+    test_data_timestamp_column,
+    test_data_field_column,
+    decompressed_field_column,
+):
     if indices:
         print(header)
 
@@ -344,9 +357,13 @@ if __name__ == "__main__":
                 except:
                     # Spaces in the name may have been replaced by underscores
                     # and upper case columns may have been converted to lower case.
-                    field_column_name_lowercase_with_space = field_column_name.replace("_", " ").lower()
+                    field_column_name_lowercase_with_space = field_column_name.replace(
+                        "_", " "
+                    ).lower()
                     test_data_field_column = test_data.column(
-                        test_data.column_names.lower().index(field_column_name_lowercase_with_space)
+                        test_data.column_names.lower().index(
+                            field_column_name_lowercase_with_space
+                        )
                     )
 
                 decompressed_columns = retrieve_ingested_columns(

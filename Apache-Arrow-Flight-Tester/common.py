@@ -49,7 +49,9 @@ class ModelarDBFlightClient:
         flights = self.list_flights()
         return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
-    def create_table(self, table_name: str, columns: list[tuple[str, str]], model_table=False) -> None:
+    def create_table(
+        self, table_name: str, columns: list[tuple[str, str]], model_table=False
+    ) -> None:
         """
         Create a table in the server or manager with the given name and columns. Each pair in columns should have the
         format (column_name, column_type).
@@ -66,12 +68,23 @@ class ModelarDBFlightClient:
         """
         print("Creating test tables...")
 
-        self.create_table("test_table_1", [("timestamp", "TIMESTAMP"), ("values", "REAL"), ("metadata", "REAL")])
-        self.create_table("test_model_table_1", [
-            ("location", "TAG"), ("install_year", "TAG"), ("model", "TAG"),
-            ("timestamp", "TIMESTAMP"), ("power_output", "FIELD"),
-            ("wind_speed", "FIELD"), ("temperature", "FIELD(5%)")
-        ], model_table=True)
+        self.create_table(
+            "test_table_1",
+            [("timestamp", "TIMESTAMP"), ("values", "REAL"), ("metadata", "REAL")],
+        )
+        self.create_table(
+            "test_model_table_1",
+            [
+                ("location", "TAG"),
+                ("install_year", "TAG"),
+                ("model", "TAG"),
+                ("timestamp", "TIMESTAMP"),
+                ("power_output", "FIELD"),
+                ("wind_speed", "FIELD"),
+                ("temperature", "FIELD(5%)"),
+            ],
+            model_table=True,
+        )
 
         print("\nCurrent tables:")
         for table_name in self.list_table_names():
@@ -86,7 +99,9 @@ class ModelarDBFlightClient:
         """Truncate the table with the given name in the server or manager."""
         self.do_get(Ticket(f"TRUNCATE TABLE {table_name}"))
 
-    def clean_up_tables(self, tables: list[str], operation: Literal["drop", "truncate"]) -> None:
+    def clean_up_tables(
+        self, tables: list[str], operation: Literal["drop", "truncate"]
+    ) -> None:
         """
         Clean up the given tables by either dropping them or truncating them. If no tables are given, all tables
         are dropped or truncated.
@@ -97,7 +112,9 @@ class ModelarDBFlightClient:
         print(f"Cleaning up {', '.join(tables)} using {operation}...")
 
         for table_name in tables:
-            self.drop_table(table_name) if operation == "drop" else self.truncate_table(table_name)
+            self.drop_table(table_name) if operation == "drop" else self.truncate_table(
+                table_name
+            )
 
     def node_type(self) -> str:
         """Return the type of the node."""

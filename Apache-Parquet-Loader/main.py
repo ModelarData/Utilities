@@ -80,7 +80,9 @@ def do_put_arrow_table(flight_client, table_name, arrow_table):
 # Main Function.
 if __name__ == "__main__":
     if len(sys.argv) != 4 and len(sys.argv) != 5:
-        print(f"usage: {sys.argv[0]} host table parquet_file_or_folder [relative_error_bound]")
+        print(
+            f"usage: {sys.argv[0]} host table parquet_file_or_folder [relative_error_bound]"
+        )
         sys.exit(1)
 
     flight_client = flight.FlightClient(f"grpc://{sys.argv[1]}")

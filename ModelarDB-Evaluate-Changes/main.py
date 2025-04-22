@@ -165,7 +165,12 @@ def send_sigint_to_process(process):
 
 
 def append_finished_result(
-    output_file, current_change, changes, ingestion_time, query_execution_times, data_folder_size
+    output_file,
+    current_change,
+    changes,
+    ingestion_time,
+    query_execution_times,
+    data_folder_size,
 ):
     results = {
         "changes": changes,
@@ -283,13 +288,13 @@ if __name__ == "__main__":
                 print(f"ERROR: failed to execute queries in {query_set}.")
                 print_separator(current_change, last_change)
                 continue
-  
+
             query_set_name = os.path.basename(query_set)
             query_execution_name = f"{query_set_name}_in_seconds"
             query_execution_times[query_execution_name] = query_time
 
         # Ensure the process is gone.
-        successfully_killed = send_sigint_to_process(modelardbd) 
+        successfully_killed = send_sigint_to_process(modelardbd)
         if not successfully_killed:
             print("ERROR: failed to terminate process.")
             print_separator(current_change, last_change)
