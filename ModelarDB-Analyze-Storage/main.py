@@ -29,7 +29,9 @@ class Configuration:
     write_statistics: bool = False
 
     def time_series_table_path(self) -> str:
-        return self.data_folder + os.sep + "tables" + os.sep + self.time_series_table_name
+        return (
+            self.data_folder + os.sep + "tables" + os.sep + self.time_series_table_name
+        )
 
 
 def list_and_process_files(configuration: Configuration, results: sqlite3.Connection):

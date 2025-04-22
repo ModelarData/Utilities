@@ -56,7 +56,9 @@ class ModelarDBFlightClient:
         Create a table in the server or manager with the given name and columns. Each pair in columns should have the
         format (column_name, column_type).
         """
-        create_table = "CREATE TIME SERIES TABLE" if time_series_table else "CREATE TABLE"
+        create_table = (
+            "CREATE TIME SERIES TABLE" if time_series_table else "CREATE TABLE"
+        )
         sql = f"{create_table} {table_name}({', '.join([f'{column[0]} {column[1]}' for column in columns])})"
 
         self.do_get(Ticket(sql))

@@ -100,7 +100,9 @@ if __name__ == "__main__":
 
     arrow_table = read_parquet_file_or_folder(parquet_files[0])
     if not table_exists(flight_client, table_name):
-        create_time_series_table(flight_client, table_name, arrow_table.schema, error_bound)
+        create_time_series_table(
+            flight_client, table_name, arrow_table.schema, error_bound
+        )
 
     for index, parquet_file in enumerate(parquet_files):
         print(f"- Processing {parquet_file} ({index + 1} of {len(parquet_files)})")
