@@ -16,6 +16,7 @@ from pyarrow import Table
 MODEL_TYPE_ID_TO_NAME = ["PMC_Mean", "Swing", "Gorilla"]
 
 
+# Must match configuration used by modelardb_storage.
 @dataclass
 class Configuration:
     data_folder: str

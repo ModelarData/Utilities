@@ -278,7 +278,7 @@ def send_sigint_to_process(process):
 if __name__ == "__main__":
     # Ensure the necessary arguments are provided.
     if len(sys.argv) < 2:
-        print(f"usage: {sys.argv[0]} test_data.parquet relative_error_bound*")
+        print(f"usage: {sys.argv[0]} parquet_file_or_folder relative_error_bound*")
         sys.exit(1)
 
     # The script assumes it runs on Linux.
