@@ -1,4 +1,4 @@
-"""Script for evaluating ModelarDB with different data sets."""
+"""Script for validating ModelarDB's compression with different data sets."""
 
 import sys
 import math

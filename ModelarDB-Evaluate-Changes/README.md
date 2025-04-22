@@ -1,4 +1,4 @@
-# Evaluate ModelarDB Changes
+# ModelarDB Evaluate Changes
 This script evaluates what impact a set of changes has on
 [ModelarDB](https://github.com/ModelarData/ModelarDB-RS) in terms of ingestion
 time, query processing time, and the amount of storage required. The script
