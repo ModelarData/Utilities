@@ -15,12 +15,16 @@ class ModelarDBManagerFlightClient(ModelarDBFlightClient):
         Retrieve the SQL statements required to initialize the database with the tables that are not included in the
         given list of tables. Throws an error if a table in the given list does not exist in the database.
         """
-        result = self.do_action("InitializeDatabase", str.encode(",".join(existing_tables)))[0]
+        result = self.do_action(
+            "InitializeDatabase", str.encode(",".join(existing_tables))
+        )[0]
         decoded_result = result.body.to_pybytes().decode("utf-8")
 
         return decoded_result.split(";")
 
-    def register_node(self, node_url: str, node_mode: Literal["cloud", "edge"]) -> list[Result]:
+    def register_node(
+        self, node_url: str, node_mode: Literal["cloud", "edge"]
+    ) -> list[Result]:
         """Register a node with the given URL and mode in the manager."""
         encoded_node_url = encode_argument(node_url)
         encoded_node_mode = encode_argument(node_mode)
@@ -64,6 +68,6 @@ if __name__ == "__main__":
     print(manager_client.register_node("grpc://127.0.0.1:9999", "edge"))
     print(manager_client.remove_node("grpc://127.0.0.1:9999"))
 
-    manager_client.query("SELECT * FROM test_model_table_1 LIMIT 5")
+    manager_client.query("SELECT * FROM test_time_series_table_1 LIMIT 5")
 
     manager_client.clean_up_tables([], "drop")
