@@ -1,4 +1,4 @@
-"""Script for analyzing how ModelarDB stores compress different data sets."""
+"""Script for analyzing how ModelarDB stores different data sets."""
 
 import os
 import sys
