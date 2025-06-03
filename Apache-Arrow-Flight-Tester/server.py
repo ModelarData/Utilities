@@ -20,15 +20,6 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         writer.write(record_batch)
         writer.close()
 
-    def collect_metrics(self) -> pd.DataFrame:
-        """Collect metrics from the server and return them as a pandas DataFrame."""
-        response = self.do_action("CollectMetrics", b"")
-
-        batch_bytes = response[0].body.to_pybytes()
-        metric_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
-
-        return metric_df
-
     def get_configuration(self) -> pd.DataFrame:
         """Get the current configuration of the server and return it as a pandas DataFrame."""
         response = self.do_action("GetConfiguration", b"")
@@ -112,9 +103,6 @@ if __name__ == "__main__":
 
     server_client.create_test_tables()
     server_client.ingest_into_server_and_query_table("test_time_series_table_1", 10000)
-
-    print("\nCurrent metrics:")
-    print(server_client.collect_metrics().to_string())
 
     print("\nCurrent configuration:")
     server_client.update_configuration(
