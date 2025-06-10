@@ -29,13 +29,14 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
 
         return configuration
 
-    def update_configuration(self, setting: str, setting_value: str) -> list[Result]:
-        """Update the given setting to the given setting value in the server configuration."""
-        encoded_setting = encode_argument(setting)
-        encoded_setting_value = encode_argument(setting_value)
+    def update_configuration(self, setting: protocol_pb2.UpdateConfiguration.Setting,
+                             new_value: int) -> list[Result]:
+        """Update the given setting to the given new value in the server configuration."""
+        update_configuration = protocol_pb2.UpdateConfiguration()
+        update_configuration.setting = setting
+        update_configuration.new_value = new_value
 
-        action_body = encoded_setting + encoded_setting_value
-        return self.do_action("UpdateConfiguration", action_body)
+        return self.do_action("UpdateConfiguration", update_configuration.SerializeToString())
 
     def ingest_into_server_and_query_table(self, table_name: str, num_rows: int) -> None:
         """
@@ -101,9 +102,8 @@ if __name__ == "__main__":
     server_client.ingest_into_server_and_query_table("test_time_series_table_1", 10000)
 
     print("\nCurrent configuration:")
-    server_client.update_configuration(
-        "compressed_reserved_memory_in_bytes", "10000000"
-    )
+    server_client.update_configuration(protocol_pb2.UpdateConfiguration.Setting.COMPRESSED_RESERVED_MEMORY_IN_BYTES,
+                                       10000000)
     print(server_client.get_configuration())
 
     server_client.clean_up_tables([], "drop")
