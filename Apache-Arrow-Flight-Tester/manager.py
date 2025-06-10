@@ -1,3 +1,4 @@
+from protobuf import protocol_pb2
 from typing import Literal
 
 from pyarrow import flight
@@ -10,17 +11,22 @@ from server import ModelarDBServerFlightClient
 class ModelarDBManagerFlightClient(ModelarDBFlightClient):
     """Functionality for interacting with a ModelarDB manager using Apache Arrow Flight."""
 
-    def initialize_database(self, existing_tables: list[str]) -> list[str]:
+    def initialize_database(self, existing_tables: list[str]) -> protocol_pb2.TableMetadata:
         """
-        Retrieve the SQL statements required to initialize the database with the tables that are not included in the
+        Retrieve the table metadata required to initialize the database with the tables that are not included in the
         given list of tables. Throws an error if a table in the given list does not exist in the database.
         """
-        result = self.do_action(
-            "InitializeDatabase", str.encode(",".join(existing_tables))
-        )[0]
-        decoded_result = result.body.to_pybytes().decode("utf-8")
+        database_metadata = protocol_pb2.DatabaseMetadata()
+        database_metadata.table_names.extend(existing_tables)
 
-        return decoded_result.split(";")
+        result = self.do_action(
+            "InitializeDatabase", database_metadata.SerializeToString()
+        )[0]
+
+        table_metadata = protocol_pb2.TableMetadata()
+        table_metadata.ParseFromString(result.body.to_pybytes())
+
+        return table_metadata
 
     def register_node(
         self, node_url: str, node_mode: Literal["cloud", "edge"]
