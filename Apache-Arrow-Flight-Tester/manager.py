@@ -45,9 +45,10 @@ class ModelarDBManagerFlightClient(ModelarDBFlightClient):
 
     def remove_node(self, node_url: str) -> list[Result]:
         """Remove the node with the given URL from the manager."""
-        encoded_node_url = encode_argument(node_url)
+        node_metadata = protocol_pb2.NodeMetadata()
+        node_metadata.url = node_url
 
-        return self.do_action("RemoveNode", encoded_node_url)
+        return self.do_action("RemoveNode", node_metadata.SerializeToString())
 
     def query(self, query: str) -> None:
         """
