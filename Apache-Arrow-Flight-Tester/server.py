@@ -1,12 +1,12 @@
 import time
 from random import randrange
 
-import pandas as pd
 import pyarrow
 from pyarrow import flight
 from pyarrow._flight import Result, Ticket
 
 from common import ModelarDBFlightClient, encode_argument
+from protobuf import protocol_pb2
 
 
 class ModelarDBServerFlightClient(ModelarDBFlightClient):
@@ -20,16 +20,14 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         writer.write(record_batch)
         writer.close()
 
-    def get_configuration(self) -> pd.DataFrame:
-        """Get the current configuration of the server and return it as a pandas DataFrame."""
+    def get_configuration(self) -> protocol_pb2.Configuration:
+        """Get the current configuration of the server."""
         response = self.do_action("GetConfiguration", b"")
 
-        batch_bytes = response[0].body.to_pybytes()
-        configuration_df = pyarrow.ipc.RecordBatchStreamReader(
-            batch_bytes
-        ).read_pandas()
+        configuration = protocol_pb2.Configuration()
+        configuration.ParseFromString(response[0].body.to_pybytes())
 
-        return configuration_df
+        return configuration
 
     def update_configuration(self, setting: str, setting_value: str) -> list[Result]:
         """Update the given setting to the given setting value in the server configuration."""
@@ -39,9 +37,7 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         action_body = encoded_setting + encoded_setting_value
         return self.do_action("UpdateConfiguration", action_body)
 
-    def ingest_into_server_and_query_table(
-        self, table_name: str, num_rows: int
-    ) -> None:
+    def ingest_into_server_and_query_table(self, table_name: str, num_rows: int) -> None:
         """
         Ingest num_rows rows into the table, flush the memory of the server, and query the first five rows of the table.
         """

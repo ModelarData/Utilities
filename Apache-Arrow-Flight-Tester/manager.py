@@ -1,10 +1,10 @@
-from protobuf import protocol_pb2
 from typing import Literal
 
 from pyarrow import flight
 from pyarrow._flight import Result
 
-from common import ModelarDBFlightClient, encode_argument
+from common import ModelarDBFlightClient
+from protobuf import protocol_pb2
 from server import ModelarDBServerFlightClient
 
 
