@@ -26,15 +26,12 @@ class ModelarDBManagerFlightClient(ModelarDBFlightClient):
 
         return table_metadata
 
-    def register_node(self, node_url: str, node_mode: Literal["cloud", "edge"]) -> protocol_pb2.ManagerMetadata:
+    def register_node(self, node_url: str,
+                      node_mode: protocol_pb2.NodeMetadata.ServerMode) -> protocol_pb2.ManagerMetadata:
         """Register a node with the given URL and mode in the manager."""
         node_metadata = protocol_pb2.NodeMetadata()
         node_metadata.url = node_url
-
-        if node_mode == "cloud":
-            node_metadata.server_mode = protocol_pb2.NodeMetadata.ServerMode.CLOUD
-        else:
-            node_metadata.server_mode = protocol_pb2.NodeMetadata.ServerMode.EDGE
+        node_metadata.server_mode = node_mode
 
         response = self.do_action("RegisterNode", node_metadata.SerializeToString())
 
