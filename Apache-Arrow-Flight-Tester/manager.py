@@ -19,26 +19,29 @@ class ModelarDBManagerFlightClient(ModelarDBFlightClient):
         database_metadata = protocol_pb2.DatabaseMetadata()
         database_metadata.table_names.extend(existing_tables)
 
-        result = self.do_action(
-            "InitializeDatabase", database_metadata.SerializeToString()
-        )[0]
+        response = self.do_action("InitializeDatabase", database_metadata.SerializeToString())
 
         table_metadata = protocol_pb2.TableMetadata()
-        table_metadata.ParseFromString(result.body.to_pybytes())
+        table_metadata.ParseFromString(response[0].body.to_pybytes())
 
         return table_metadata
 
-    def register_node(
-        self, node_url: str, node_mode: Literal["cloud", "edge"]
-    ) -> list[Result]:
+    def register_node(self, node_url: str, node_mode: Literal["cloud", "edge"]) -> protocol_pb2.ManagerMetadata:
         """Register a node with the given URL and mode in the manager."""
-        encoded_node_url = encode_argument(node_url)
-        encoded_node_mode = encode_argument(node_mode)
+        node_metadata = protocol_pb2.NodeMetadata()
+        node_metadata.url = node_url
 
-        action_body = encoded_node_url + encoded_node_mode
-        response = self.do_action("RegisterNode", action_body)
+        if node_mode == "cloud":
+            node_metadata.server_mode = protocol_pb2.NodeMetadata.ServerMode.CLOUD
+        else:
+            node_metadata.server_mode = protocol_pb2.NodeMetadata.ServerMode.EDGE
 
-        return response[0].body.to_pybytes()
+        response = self.do_action("RegisterNode", node_metadata.SerializeToString())
+
+        manager_metadata = protocol_pb2.ManagerMetadata()
+        manager_metadata.ParseFromString(response[0].body.to_pybytes())
+
+        return manager_metadata
 
     def remove_node(self, node_url: str) -> list[Result]:
         """Remove the node with the given URL from the manager."""
