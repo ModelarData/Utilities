@@ -5,7 +5,7 @@ import pyarrow
 from pyarrow import flight
 from pyarrow._flight import Result, Ticket
 
-from common import ModelarDBFlightClient, encode_argument
+from common import ModelarDBFlightClient
 from protobuf import protocol_pb2
 
 
