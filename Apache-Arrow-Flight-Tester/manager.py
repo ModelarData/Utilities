@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pyarrow import flight
 from pyarrow._flight import Result
 
