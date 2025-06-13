@@ -49,9 +49,7 @@ class ModelarDBFlightClient:
         flights = self.list_flights()
         return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
-    def create_table(
-        self, table_name: str, columns: list[tuple[str, str]], time_series_table=False
-    ) -> None:
+    def create_table(self, table_name: str, columns: list[tuple[str, str]], time_series_table=False) -> None:
         """
         Create a table in the server or manager with the given name and columns. Each pair in columns should have the
         format (column_name, column_type).
@@ -102,9 +100,7 @@ class ModelarDBFlightClient:
         """Truncate the table with the given name in the server or manager."""
         self.do_get(Ticket(f"TRUNCATE TABLE {table_name}"))
 
-    def clean_up_tables(
-        self, tables: list[str], operation: Literal["drop", "truncate"]
-    ) -> None:
+    def clean_up_tables(self, tables: list[str], operation: Literal["drop", "truncate"]) -> None:
         """
         Clean up the given tables by either dropping them or truncating them. If no tables are given, all tables
         are dropped or truncated.
@@ -125,11 +121,3 @@ class ModelarDBFlightClient:
         """Return the type of the node."""
         node_type = self.do_action("NodeType", b"")
         return node_type[0].body.to_pybytes().decode("utf-8")
-
-
-def encode_argument(argument: str) -> bytes:
-    """Encode the given argument as bytes and prepend the size of the argument as a 2-byte integer."""
-    argument_bytes = str.encode(argument)
-    argument_size = len(argument_bytes).to_bytes(2, byteorder="big")
-
-    return argument_size + argument_bytes

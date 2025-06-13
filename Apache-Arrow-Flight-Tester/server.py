@@ -1,12 +1,12 @@
 import time
 from random import randrange
 
-import pandas as pd
 import pyarrow
 from pyarrow import flight
 from pyarrow._flight import Result, Ticket
 
-from common import ModelarDBFlightClient, encode_argument
+from common import ModelarDBFlightClient
+from protobuf import protocol_pb2
 
 
 class ModelarDBServerFlightClient(ModelarDBFlightClient):
@@ -20,37 +20,25 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         writer.write(record_batch)
         writer.close()
 
-    def collect_metrics(self) -> pd.DataFrame:
-        """Collect metrics from the server and return them as a pandas DataFrame."""
-        response = self.do_action("CollectMetrics", b"")
-
-        batch_bytes = response[0].body.to_pybytes()
-        metric_df = pyarrow.ipc.RecordBatchStreamReader(batch_bytes).read_pandas()
-
-        return metric_df
-
-    def get_configuration(self) -> pd.DataFrame:
-        """Get the current configuration of the server and return it as a pandas DataFrame."""
+    def get_configuration(self) -> protocol_pb2.Configuration:
+        """Get the current configuration of the server."""
         response = self.do_action("GetConfiguration", b"")
 
-        batch_bytes = response[0].body.to_pybytes()
-        configuration_df = pyarrow.ipc.RecordBatchStreamReader(
-            batch_bytes
-        ).read_pandas()
+        configuration = protocol_pb2.Configuration()
+        configuration.ParseFromString(response[0].body.to_pybytes())
 
-        return configuration_df
+        return configuration
 
-    def update_configuration(self, setting: str, setting_value: str) -> list[Result]:
-        """Update the given setting to the given setting value in the server configuration."""
-        encoded_setting = encode_argument(setting)
-        encoded_setting_value = encode_argument(setting_value)
+    def update_configuration(self, setting: protocol_pb2.UpdateConfiguration.Setting,
+                             new_value: int) -> list[Result]:
+        """Update the given setting to the given new value in the server configuration."""
+        update_configuration = protocol_pb2.UpdateConfiguration()
+        update_configuration.setting = setting
+        update_configuration.new_value = new_value
 
-        action_body = encoded_setting + encoded_setting_value
-        return self.do_action("UpdateConfiguration", action_body)
+        return self.do_action("UpdateConfiguration", update_configuration.SerializeToString())
 
-    def ingest_into_server_and_query_table(
-        self, table_name: str, num_rows: int
-    ) -> None:
+    def ingest_into_server_and_query_table(self, table_name: str, num_rows: int) -> None:
         """
         Ingest num_rows rows into the table, flush the memory of the server, and query the first five rows of the table.
         """
@@ -113,13 +101,9 @@ if __name__ == "__main__":
     server_client.create_test_tables()
     server_client.ingest_into_server_and_query_table("test_time_series_table_1", 10000)
 
-    print("\nCurrent metrics:")
-    print(server_client.collect_metrics().to_string())
-
     print("\nCurrent configuration:")
-    server_client.update_configuration(
-        "compressed_reserved_memory_in_bytes", "10000000"
-    )
+    server_client.update_configuration(protocol_pb2.UpdateConfiguration.Setting.COMPRESSED_RESERVED_MEMORY_IN_BYTES,
+                                       10000000)
     print(server_client.get_configuration())
 
     server_client.clean_up_tables([], "drop")
