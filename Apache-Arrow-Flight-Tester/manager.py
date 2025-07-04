@@ -1,44 +1,49 @@
-from typing import Literal
-
 from pyarrow import flight
 from pyarrow._flight import Result
 
-from common import ModelarDBFlightClient, encode_argument
+from common import ModelarDBFlightClient
+from protobuf import protocol_pb2
 from server import ModelarDBServerFlightClient
 
 
 class ModelarDBManagerFlightClient(ModelarDBFlightClient):
     """Functionality for interacting with a ModelarDB manager using Apache Arrow Flight."""
 
-    def initialize_database(self, existing_tables: list[str]) -> list[str]:
+    def initialize_database(self, existing_tables: list[str]) -> protocol_pb2.TableMetadata:
         """
-        Retrieve the SQL statements required to initialize the database with the tables that are not included in the
+        Retrieve the table metadata required to initialize the database with the tables that are not included in the
         given list of tables. Throws an error if a table in the given list does not exist in the database.
         """
-        result = self.do_action(
-            "InitializeDatabase", str.encode(",".join(existing_tables))
-        )[0]
-        decoded_result = result.body.to_pybytes().decode("utf-8")
+        database_metadata = protocol_pb2.DatabaseMetadata()
+        database_metadata.table_names.extend(existing_tables)
 
-        return decoded_result.split(";")
+        response = self.do_action("InitializeDatabase", database_metadata.SerializeToString())
 
-    def register_node(
-        self, node_url: str, node_mode: Literal["cloud", "edge"]
-    ) -> list[Result]:
+        table_metadata = protocol_pb2.TableMetadata()
+        table_metadata.ParseFromString(response[0].body.to_pybytes())
+
+        return table_metadata
+
+    def register_node(self, node_url: str,
+                      node_mode: protocol_pb2.NodeMetadata.ServerMode) -> protocol_pb2.ManagerMetadata:
         """Register a node with the given URL and mode in the manager."""
-        encoded_node_url = encode_argument(node_url)
-        encoded_node_mode = encode_argument(node_mode)
+        node_metadata = protocol_pb2.NodeMetadata()
+        node_metadata.url = node_url
+        node_metadata.server_mode = node_mode
 
-        action_body = encoded_node_url + encoded_node_mode
-        response = self.do_action("RegisterNode", action_body)
+        response = self.do_action("RegisterNode", node_metadata.SerializeToString())
 
-        return response[0].body.to_pybytes()
+        manager_metadata = protocol_pb2.ManagerMetadata()
+        manager_metadata.ParseFromString(response[0].body.to_pybytes())
+
+        return manager_metadata
 
     def remove_node(self, node_url: str) -> list[Result]:
         """Remove the node with the given URL from the manager."""
-        encoded_node_url = encode_argument(node_url)
+        node_metadata = protocol_pb2.NodeMetadata()
+        node_metadata.url = node_url
 
-        return self.do_action("RemoveNode", encoded_node_url)
+        return self.do_action("RemoveNode", node_metadata.SerializeToString())
 
     def query(self, query: str) -> None:
         """
@@ -65,7 +70,7 @@ if __name__ == "__main__":
 
     print(manager_client.initialize_database(["test_table_1"]))
 
-    print(manager_client.register_node("grpc://127.0.0.1:9999", "edge"))
+    print(manager_client.register_node("grpc://127.0.0.1:9999", protocol_pb2.NodeMetadata.ServerMode.EDGE))
     print(manager_client.remove_node("grpc://127.0.0.1:9999"))
 
     manager_client.query("SELECT * FROM test_time_series_table_1 LIMIT 5")
