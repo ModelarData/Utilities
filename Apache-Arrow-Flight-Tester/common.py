@@ -117,6 +117,10 @@ class ModelarDBFlightClient:
                 else self.truncate_table(table_name)
             )
 
+    def vacuum(self, table_names: list[str]) -> None:
+        """Vacuum the given tables in the server or manager."""
+        self.do_get(Ticket(f"VACUUM {', '.join(table_names)}"))
+
     def node_type(self) -> str:
         """Return the type of the node."""
         node_type = self.do_action("NodeType", b"")
