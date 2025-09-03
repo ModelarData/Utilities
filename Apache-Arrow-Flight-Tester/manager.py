@@ -9,21 +9,6 @@ from server import ModelarDBServerFlightClient
 class ModelarDBManagerFlightClient(ModelarDBFlightClient):
     """Functionality for interacting with a ModelarDB manager using Apache Arrow Flight."""
 
-    def initialize_database(self, existing_tables: list[str]) -> protocol_pb2.TableMetadata:
-        """
-        Retrieve the table metadata required to initialize the database with the tables that are not included in the
-        given list of tables. Throws an error if a table in the given list does not exist in the database.
-        """
-        database_metadata = protocol_pb2.DatabaseMetadata()
-        database_metadata.table_names.extend(existing_tables)
-
-        response = self.do_action("InitializeDatabase", database_metadata.SerializeToString())
-
-        table_metadata = protocol_pb2.TableMetadata()
-        table_metadata.ParseFromString(response[0].body.to_pybytes())
-
-        return table_metadata
-
     def register_node(self, node_url: str,
                       node_mode: protocol_pb2.NodeMetadata.ServerMode) -> protocol_pb2.ManagerMetadata:
         """Register a node with the given URL and mode in the manager."""
@@ -67,8 +52,6 @@ if __name__ == "__main__":
     print(f"Node type: {manager_client.node_type()}\n")
 
     manager_client.create_test_tables()
-
-    print(manager_client.initialize_database(["test_table_1"]))
 
     print(manager_client.register_node("grpc://127.0.0.1:9999", protocol_pb2.NodeMetadata.ServerMode.EDGE))
     print(manager_client.remove_node("grpc://127.0.0.1:9999"))
