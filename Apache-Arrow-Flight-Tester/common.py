@@ -187,10 +187,7 @@ class ModelarDBFlightClient:
 
 
 def get_time_series_table_schema() -> pyarrow.Schema:
-    """
-    Return a sample schema for a time series table with one timestamp column, three tag columns,
-    and three field columns.
-    """
+    """Return a schema for a time series table with one timestamp column, three tag columns, and three field columns."""
     return pyarrow.schema([
         ("location", pyarrow.utf8()),
         ("install_year", pyarrow.utf8()),
