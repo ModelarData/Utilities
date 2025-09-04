@@ -52,7 +52,7 @@ class NodeMetadata(_message.Message):
     def __init__(self, url: _Optional[str] = ..., server_mode: _Optional[_Union[NodeMetadata.ServerMode, str]] = ...) -> None: ...
 
 class TableMetadata(_message.Message):
-    __slots__ = ("normal_tables", "time_series_tables")
+    __slots__ = ("normal_table", "time_series_table")
     class NormalTableMetadata(_message.Message):
         __slots__ = ("name", "schema")
         NAME_FIELD_NUMBER: _ClassVar[int]
@@ -84,11 +84,11 @@ class TableMetadata(_message.Message):
         error_bounds: _containers.RepeatedCompositeFieldContainer[TableMetadata.TimeSeriesTableMetadata.ErrorBound]
         generated_column_expressions: _containers.RepeatedScalarFieldContainer[bytes]
         def __init__(self, name: _Optional[str] = ..., schema: _Optional[bytes] = ..., error_bounds: _Optional[_Iterable[_Union[TableMetadata.TimeSeriesTableMetadata.ErrorBound, _Mapping]]] = ..., generated_column_expressions: _Optional[_Iterable[bytes]] = ...) -> None: ...
-    NORMAL_TABLES_FIELD_NUMBER: _ClassVar[int]
-    TIME_SERIES_TABLES_FIELD_NUMBER: _ClassVar[int]
-    normal_tables: _containers.RepeatedCompositeFieldContainer[TableMetadata.NormalTableMetadata]
-    time_series_tables: _containers.RepeatedCompositeFieldContainer[TableMetadata.TimeSeriesTableMetadata]
-    def __init__(self, normal_tables: _Optional[_Iterable[_Union[TableMetadata.NormalTableMetadata, _Mapping]]] = ..., time_series_tables: _Optional[_Iterable[_Union[TableMetadata.TimeSeriesTableMetadata, _Mapping]]] = ...) -> None: ...
+    NORMAL_TABLE_FIELD_NUMBER: _ClassVar[int]
+    TIME_SERIES_TABLE_FIELD_NUMBER: _ClassVar[int]
+    normal_table: TableMetadata.NormalTableMetadata
+    time_series_table: TableMetadata.TimeSeriesTableMetadata
+    def __init__(self, normal_table: _Optional[_Union[TableMetadata.NormalTableMetadata, _Mapping]] = ..., time_series_table: _Optional[_Union[TableMetadata.TimeSeriesTableMetadata, _Mapping]] = ...) -> None: ...
 
 class Configuration(_message.Message):
     __slots__ = ("multivariate_reserved_memory_in_bytes", "uncompressed_reserved_memory_in_bytes", "compressed_reserved_memory_in_bytes", "transfer_batch_size_in_bytes", "transfer_time_in_seconds", "retention_period_in_seconds", "ingestion_threads", "compression_threads", "writer_threads")
@@ -133,9 +133,3 @@ class UpdateConfiguration(_message.Message):
     setting: UpdateConfiguration.Setting
     new_value: int
     def __init__(self, setting: _Optional[_Union[UpdateConfiguration.Setting, str]] = ..., new_value: _Optional[int] = ...) -> None: ...
-
-class DatabaseMetadata(_message.Message):
-    __slots__ = ("table_names",)
-    TABLE_NAMES_FIELD_NUMBER: _ClassVar[int]
-    table_names: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, table_names: _Optional[_Iterable[str]] = ...) -> None: ...
