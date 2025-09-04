@@ -51,7 +51,7 @@ if __name__ == "__main__":
     manager_client = ModelarDBManagerFlightClient("grpc://127.0.0.1:9998")
     print(f"Node type: {manager_client.node_type()}\n")
 
-    manager_client.create_test_tables()
+    manager_client.create_test_tables_from_metadata()
 
     print(manager_client.register_node("grpc://127.0.0.1:9999", protocol_pb2.NodeMetadata.ServerMode.EDGE))
     print(manager_client.remove_node("grpc://127.0.0.1:9999"))
