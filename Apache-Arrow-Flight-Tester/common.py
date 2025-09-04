@@ -138,3 +138,21 @@ class ModelarDBFlightClient:
         """Return the type of the node."""
         node_type = self.do_action("NodeType", b"")
         return node_type[0].body.to_pybytes().decode("utf-8")
+
+
+def get_time_series_table_schema() -> pyarrow.Schema:
+    """
+    Return a sample schema for a time series table with one timestamp column, three tag columns,
+    and three field columns.
+    """
+    return pyarrow.schema(
+        [
+            ("location", pyarrow.utf8()),
+            ("install_year", pyarrow.utf8()),
+            ("model", pyarrow.utf8()),
+            ("timestamp", pyarrow.timestamp("us")),
+            ("power_output", pyarrow.float32()),
+            ("wind_speed", pyarrow.float32()),
+            ("temperature", pyarrow.float32()),
+        ]
+    )
