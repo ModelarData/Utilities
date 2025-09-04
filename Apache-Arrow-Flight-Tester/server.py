@@ -65,7 +65,7 @@ def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
     install_year = ["2021" if i % 2 == 0 else "2022" for i in range(num_rows)]
     model = ["w72" if i % 2 == 0 else "w73" for i in range(num_rows)]
 
-    timestamp = [round(time.time() * 1000000) + (i * 1000) for i in range(num_rows)]
+    timestamp = [round(time.time() * 1000000) + (i * 1000000) for i in range(num_rows)]
     power_output = [float(randrange(0, 30)) for _ in range(num_rows)]
     wind_speed = [float(randrange(50, 100)) for _ in range(num_rows)]
     temperature = [float(randrange(0, 40)) for _ in range(num_rows)]
