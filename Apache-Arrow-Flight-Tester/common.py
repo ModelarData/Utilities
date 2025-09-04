@@ -97,6 +97,7 @@ class ModelarDBFlightClient:
     def create_normal_table_from_metadata(self, table_name: str, schema: pyarrow.Schema) -> None:
         """Create a normal table using the table name and schema."""
         normal_table_metadata = protocol_pb2.TableMetadata.NormalTableMetadata()
+
         normal_table_metadata.name = table_name
         normal_table_metadata.schema = schema.serialize().to_pybytes()
 
@@ -105,6 +106,20 @@ class ModelarDBFlightClient:
 
         self.do_action("CreateTable", table_metadata.SerializeToString())
 
+    def create_time_series_table_from_metadata(self, table_name: str, schema: pyarrow.Schema, error_bounds: list[
+        protocol_pb2.TableMetadata.TimeSeriesTableMetadata.ErrorBound], generated_columns: list[bytes]) -> None:
+        """Create a time series table using the table name, schema, error bounds, and generated columns."""
+        time_series_table_metadata = protocol_pb2.TableMetadata.TimeSeriesTableMetadata()
+
+        time_series_table_metadata.name = table_name
+        time_series_table_metadata.schema = schema.serialize().to_pybytes()
+        time_series_table_metadata.error_bounds.extend(error_bounds)
+        time_series_table_metadata.generated_column_expressions.extend(generated_columns)
+
+        table_metadata = protocol_pb2.TableMetadata()
+        table_metadata.time_series_table.CopyFrom(time_series_table_metadata)
+
+        self.do_action("CreateTable", table_metadata.SerializeToString())
     def drop_table(self, table_name: str) -> None:
         """Drop the table with the given name from the server or manager."""
         self.do_get(Ticket(f"DROP TABLE {table_name}"))
@@ -145,14 +160,12 @@ def get_time_series_table_schema() -> pyarrow.Schema:
     Return a sample schema for a time series table with one timestamp column, three tag columns,
     and three field columns.
     """
-    return pyarrow.schema(
-        [
-            ("location", pyarrow.utf8()),
-            ("install_year", pyarrow.utf8()),
-            ("model", pyarrow.utf8()),
-            ("timestamp", pyarrow.timestamp("us")),
-            ("power_output", pyarrow.float32()),
-            ("wind_speed", pyarrow.float32()),
-            ("temperature", pyarrow.float32()),
-        ]
-    )
+    return pyarrow.schema([
+        ("location", pyarrow.utf8()),
+        ("install_year", pyarrow.utf8()),
+        ("model", pyarrow.utf8()),
+        ("timestamp", pyarrow.timestamp("us")),
+        ("power_output", pyarrow.float32()),
+        ("wind_speed", pyarrow.float32()),
+        ("temperature", pyarrow.float32()),
+    ])
