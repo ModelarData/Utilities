@@ -1,6 +1,8 @@
+import pyarrow
 import pprint
-from typing import Literal
 
+from typing import Literal
+from protobuf import protocol_pb2
 from pyarrow import flight, Schema
 from pyarrow._flight import FlightInfo, ActionType, Result, Ticket
 
@@ -91,6 +93,17 @@ class ModelarDBFlightClient:
         for table_name in self.list_table_names():
             print(f"{table_name}:")
             print(f"{self.get_schema(table_name)}\n")
+
+    def create_normal_table_from_metadata(self, table_name: str, schema: pyarrow.Schema) -> None:
+        """Create a normal table using the table name and schema."""
+        normal_table_metadata = protocol_pb2.TableMetadata.NormalTableMetadata()
+        normal_table_metadata.name = table_name
+        normal_table_metadata.schema = schema.serialize().to_pybytes()
+
+        table_metadata = protocol_pb2.TableMetadata()
+        table_metadata.normal_table.CopyFrom(normal_table_metadata)
+
+        self.do_action("CreateTable", table_metadata.SerializeToString())
 
     def drop_table(self, table_name: str) -> None:
         """Drop the table with the given name from the server or manager."""
