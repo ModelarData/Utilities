@@ -72,11 +72,6 @@ def do_put_arrow_table(flight_client, table_name, arrow_table):
     writer.write(arrow_table)
     writer.close()
 
-    # Flush the data to disk.
-    action = flight.Action("FlushMemory", b"")
-    result = flight_client.do_action(action)
-    return list(result)
-
 
 # Main Function.
 if __name__ == "__main__":
@@ -108,3 +103,8 @@ if __name__ == "__main__":
         print(f"- Processing {parquet_file} ({index + 1} of {len(parquet_files)})")
         arrow_table = read_parquet_file_or_folder(parquet_file)
         do_put_arrow_table(flight_client, table_name, arrow_table)
+
+    # Flush the data to disk.
+    action = flight.Action("FlushMemory", b"")
+    result = flight_client.do_action(action)
+    print(list(result))
