@@ -137,8 +137,8 @@ class ModelarDBFlightClient:
 
         time_series_table_schema = get_time_series_table_schema()
 
-        absolute = protocol_pb2.TableMetadata.TimeSeriesTableMetadata.ErrorBound.Type.ABSOLUTE
-        error_bounds = [protocol_pb2.TableMetadata.TimeSeriesTableMetadata.ErrorBound(value=0, type=absolute)
+        lossless = protocol_pb2.TableMetadata.TimeSeriesTableMetadata.ErrorBound.Type.LOSSLESS
+        error_bounds = [protocol_pb2.TableMetadata.TimeSeriesTableMetadata.ErrorBound(value=0, type=lossless)
                         for _ in range(len(time_series_table_schema))]
 
         generated_column_expressions = [b'' for _ in range(len(time_series_table_schema))]
