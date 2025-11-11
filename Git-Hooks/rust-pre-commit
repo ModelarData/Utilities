@@ -35,6 +35,11 @@ do
     echo "Cargo Test"
     RUSTFLAGS="-D warnings" cargo test --profile $profile --all-targets -- --nocapture
     echo
+    echo "Python Sphinx"
+    pushd "crates/modelardb_embedded/bindings/python/docs" > /dev/null
+    make html
+    popd > /dev/null
+    echo
     echo "Python Test"
     pushd "crates/modelardb_embedded/bindings/python" > /dev/null
     python -m unittest --verbose
