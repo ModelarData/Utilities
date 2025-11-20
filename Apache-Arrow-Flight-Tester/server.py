@@ -1,10 +1,10 @@
 import pyarrow
 from pyarrow import flight
-from pyarrow._flight import Result, Ticket
+from pyarrow._flight import Result
 
 from common import ModelarDBFlightClient
-from util import create_record_batch
 from protobuf import protocol_pb2
+from util import ingest_into_server_and_query_table, create_test_tables, clean_up_tables
 
 
 class ModelarDBServerFlightClient(ModelarDBFlightClient):
@@ -36,21 +36,6 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
 
         return self.do_action("UpdateConfiguration", update_configuration.SerializeToString())
 
-    def ingest_into_server_and_query_table(self, table_name: str, num_rows: int) -> None:
-        """
-        Ingest num_rows rows into the table, flush the memory of the server, and query the first five rows of the table.
-        """
-        record_batch = create_record_batch(num_rows)
-
-        print(f"Ingesting data into {table_name}...\n")
-        self.do_put(table_name, record_batch)
-
-        print("Flushing memory of the edge...\n")
-        self.do_action("FlushMemory", b"")
-
-        print(f"First five rows of {table_name}:")
-        self.do_get(Ticket(f"SELECT * FROM {table_name} LIMIT 5"))
-
     def workload_balanced_query(self, query: str) -> None:
         """
         Retrieve a cloud node that can execute the given query and execute the query on the node. It is assumed that
@@ -72,12 +57,12 @@ if __name__ == "__main__":
     server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999")
     print(f"Node type: {server_client.node_type()}\n")
 
-    server_client.create_test_tables()
-    server_client.ingest_into_server_and_query_table("test_time_series_table_1", 10000)
+    create_test_tables(server_client)
+    ingest_into_server_and_query_table(server_client, "test_time_series_table_1", 10000)
 
     print("\nCurrent configuration:")
     server_client.update_configuration(protocol_pb2.UpdateConfiguration.Setting.COMPRESSED_RESERVED_MEMORY_IN_BYTES,
                                        10000000)
     print(server_client.get_configuration())
 
-    server_client.clean_up_tables([], "drop")
+    clean_up_tables(server_client, [], "drop")

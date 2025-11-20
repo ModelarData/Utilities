@@ -1,11 +1,9 @@
 import pyarrow
 import pprint
 
-from typing import Literal
 from protobuf import protocol_pb2
 from pyarrow import flight, Schema
 from pyarrow._flight import FlightInfo, ActionType, Result, Ticket
-from util import get_time_series_table_schema
 
 
 class ModelarDBFlightClient:
@@ -64,36 +62,6 @@ class ModelarDBFlightClient:
 
         self.do_get(Ticket(sql))
 
-    def create_test_tables(self) -> None:
-        """
-        Create a normal table and a time series table using the flight client, print the current tables to ensure the
-        created tables are included, and print the schema to ensure the tables are created correctly.
-        """
-        print("Creating test tables...")
-
-        self.create_table(
-            "test_table_1",
-            [("timestamp", "TIMESTAMP"), ("values", "REAL"), ("metadata", "REAL")],
-        )
-        self.create_table(
-            "test_time_series_table_1",
-            [
-                ("location", "TAG"),
-                ("install_year", "TAG"),
-                ("model", "TAG"),
-                ("timestamp", "TIMESTAMP"),
-                ("power_output", "FIELD"),
-                ("wind_speed", "FIELD"),
-                ("temperature", "FIELD(5%)"),
-            ],
-            time_series_table=True,
-        )
-
-        print("\nCurrent tables:")
-        for table_name in self.list_table_names():
-            print(f"{table_name}:")
-            print(f"{self.get_schema(table_name)}\n")
-
     def create_normal_table_from_metadata(self, table_name: str, schema: pyarrow.Schema) -> None:
         """Create a normal table using the table name and schema."""
         normal_table_metadata = protocol_pb2.TableMetadata.NormalTableMetadata()
@@ -121,37 +89,6 @@ class ModelarDBFlightClient:
 
         self.do_action("CreateTable", table_metadata.SerializeToString())
 
-    def create_test_tables_from_metadata(self):
-        """
-        Create a normal table and a time series table using the CreateTable action, print the current tables to ensure
-        the created tables are included, and print the schema to ensure the tables are created correctly.
-        """
-        print("Creating test tables from metadata...")
-
-        normal_table_schema = pyarrow.schema([
-            ("timestamp", pyarrow.timestamp("us")),
-            ("values", pyarrow.float32()),
-            ("metadata", pyarrow.utf8())
-        ])
-
-        self.create_normal_table_from_metadata("test_table_1", normal_table_schema)
-
-        time_series_table_schema = get_time_series_table_schema()
-
-        lossless = protocol_pb2.TableMetadata.TimeSeriesTableMetadata.ErrorBound.Type.LOSSLESS
-        error_bounds = [protocol_pb2.TableMetadata.TimeSeriesTableMetadata.ErrorBound(value=0, type=lossless)
-                        for _ in range(len(time_series_table_schema))]
-
-        generated_column_expressions = [b'' for _ in range(len(time_series_table_schema))]
-
-        self.create_time_series_table_from_metadata("test_time_series_table_1", time_series_table_schema,
-                                                    error_bounds, generated_column_expressions)
-
-        print("\nCurrent tables:")
-        for table_name in self.list_table_names():
-            print(f"{table_name}:")
-            print(f"{self.get_schema(table_name)}\n")
-
     def drop_table(self, table_name: str) -> None:
         """Drop the table with the given name from the server or manager."""
         self.do_get(Ticket(f"DROP TABLE {table_name}"))
@@ -159,23 +96,6 @@ class ModelarDBFlightClient:
     def truncate_table(self, table_name: str) -> None:
         """Truncate the table with the given name in the server or manager."""
         self.do_get(Ticket(f"TRUNCATE TABLE {table_name}"))
-
-    def clean_up_tables(self, tables: list[str], operation: Literal["drop", "truncate"]) -> None:
-        """
-        Clean up the given tables by either dropping them or truncating them. If no tables are given, all tables
-        are dropped or truncated.
-        """
-        if len(tables) == 0:
-            tables = self.list_table_names()
-
-        print(f"Cleaning up {', '.join(tables)} using {operation}...")
-
-        for table_name in tables:
-            (
-                self.drop_table(table_name)
-                if operation == "drop"
-                else self.truncate_table(table_name)
-            )
 
     def vacuum(self, table_names: list[str]) -> None:
         """Vacuum the given tables in the server or manager."""
