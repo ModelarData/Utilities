@@ -53,6 +53,22 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         print(f"First five rows of {table_name}:")
         self.do_get(Ticket(f"SELECT * FROM {table_name} LIMIT 5"))
 
+    def workload_balanced_query(self, query: str) -> None:
+        """
+        Retrieve a cloud node that can execute the given query and execute the query on the node. It is assumed that
+        at least one cloud node is already registered with the manager.
+        """
+        print("Retrieving cloud node that can execute the query...")
+        query_descriptor = flight.FlightDescriptor.for_command(query)
+        flight_info = self.flight_client.get_flight_info(query_descriptor)
+
+        endpoint = flight_info.endpoints[0]
+        cloud_node_url = endpoint.locations[0]
+
+        print(f"Executing query on {cloud_node_url}...")
+        cloud_client = ModelarDBServerFlightClient(cloud_node_url)
+        cloud_client.do_get(endpoint.ticket)
+
 
 def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
     """
