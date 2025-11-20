@@ -147,5 +147,5 @@ def clean_up_tables(server_client: ModelarDBServerFlightClient, tables: list[str
         (
             server_client.drop_table(table_name)
             if operation == "drop"
-            else server_client.truncate_table(table_name)
+            else server_client.truncate(table_name)
         )
