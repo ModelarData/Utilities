@@ -11,14 +11,14 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
     """Functionality for interacting with a ModelarDB server using Apache Arrow Flight."""
 
     def list_table_names(self) -> list[str]:
-        """Return the names of the tables in the server or manager."""
+        """Return the names of the tables in the server."""
         flights = self.list_flights()
         return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
     def workload_balanced_query(self, query: str) -> None:
         """
         Retrieve a cloud node that can execute the given query and execute the query on the node. It is assumed that
-        at least one cloud node is already registered with the manager.
+        the cluster has at least one cloud node.
         """
         print("Retrieving cloud node that can execute the query...")
         query_descriptor = flight.FlightDescriptor.for_command(query)
@@ -33,7 +33,7 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
 
     def create_table(self, table_name: str, columns: list[tuple[str, str]], time_series_table=False) -> None:
         """
-        Create a table in the server or manager with the given name and columns. Each pair in columns should have the
+        Create a table in the server with the given name and columns. Each pair in columns should have the
         format (column_name, column_type).
         """
         create_table = (
@@ -44,15 +44,15 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
         self.do_get(Ticket(sql))
 
     def drop_table(self, table_name: str) -> None:
-        """Drop the table with the given name from the server or manager."""
+        """Drop the table with the given name from the server."""
         self.do_get(Ticket(f"DROP TABLE {table_name}"))
 
     def truncate(self, table_name: str) -> None:
-        """Truncate the table with the given name in the server or manager."""
+        """Truncate the table with the given name in the server."""
         self.do_get(Ticket(f"TRUNCATE {table_name}"))
 
     def vacuum(self, table_names: list[str]) -> None:
-        """Vacuum the given tables in the server or manager."""
+        """Vacuum the given tables in the server."""
         self.do_get(Ticket(f"VACUUM {', '.join(table_names)}"))
 
     def create_normal_table_from_metadata(self, table_name: str, schema: pyarrow.Schema) -> None:
