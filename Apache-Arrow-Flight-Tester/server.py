@@ -1,11 +1,9 @@
-import time
-from random import randrange
-
 import pyarrow
 from pyarrow import flight
 from pyarrow._flight import Result, Ticket
 
-from common import ModelarDBFlightClient, get_time_series_table_schema
+from common import ModelarDBFlightClient
+from util import create_record_batch
 from protobuf import protocol_pb2
 
 
@@ -68,36 +66,6 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
         print(f"Executing query on {cloud_node_url}...")
         cloud_client = ModelarDBServerFlightClient(cloud_node_url)
         cloud_client.do_get(endpoint.ticket)
-
-
-def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
-    """
-    Create a record batch with num_rows rows of randomly generated data for a table with one timestamp column,
-    three tag columns, and three field columns.
-    """
-    schema = get_time_series_table_schema()
-
-    location = ["aalborg" if i % 2 == 0 else "nibe" for i in range(num_rows)]
-    install_year = ["2021" if i % 2 == 0 else "2022" for i in range(num_rows)]
-    model = ["w72" if i % 2 == 0 else "w73" for i in range(num_rows)]
-
-    timestamp = [round(time.time() * 1000000) + (i * 1000000) for i in range(num_rows)]
-    power_output = [float(randrange(0, 30)) for _ in range(num_rows)]
-    wind_speed = [float(randrange(50, 100)) for _ in range(num_rows)]
-    temperature = [float(randrange(0, 40)) for _ in range(num_rows)]
-
-    return pyarrow.RecordBatch.from_arrays(
-        [
-            location,
-            install_year,
-            model,
-            timestamp,
-            power_output,
-            wind_speed,
-            temperature,
-        ],
-        schema=schema,
-    )
 
 
 if __name__ == "__main__":
