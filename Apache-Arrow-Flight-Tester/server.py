@@ -2,9 +2,9 @@ import pyarrow
 from pyarrow import flight
 from pyarrow._flight import Result, Ticket
 
+import util
 from wrapper import FlightClientWrapper
 from protobuf import protocol_pb2
-from util import ingest_into_server_and_query_table, create_test_tables, clean_up_tables
 
 
 class ModelarDBServerFlightClient(FlightClientWrapper):
@@ -110,12 +110,12 @@ if __name__ == "__main__":
     server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999")
     print(f"Node type: {server_client.node_type()}\n")
 
-    create_test_tables(server_client)
-    ingest_into_server_and_query_table(server_client, "test_time_series_table_1", 10000)
+    util.create_test_tables(server_client)
+    util.ingest_into_server_and_query_table(server_client, "test_time_series_table_1", 10000)
 
     print("\nCurrent configuration:")
     server_client.update_configuration(protocol_pb2.UpdateConfiguration.Setting.COMPRESSED_RESERVED_MEMORY_IN_BYTES,
                                        10000000)
     print(server_client.get_configuration())
 
-    clean_up_tables(server_client, [], "drop")
+    util.clean_up_tables(server_client, [], "drop")
