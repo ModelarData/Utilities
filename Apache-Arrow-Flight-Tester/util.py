@@ -83,7 +83,7 @@ def create_test_tables(server_client: ModelarDBServerFlightClient) -> None:
         print(f"{server_client.get_schema(table_name)}\n")
 
 
-def create_test_tables_from_metadata(server_client: ModelarDBServerFlightClient):
+def create_test_tables_from_metadata(server_client: ModelarDBServerFlightClient) -> None:
     """
     Create a normal table and a time series table using the CreateTable action, print the current tables to ensure
     the created tables are included, and print the schema to ensure the tables are created correctly.
@@ -125,7 +125,7 @@ def ingest_into_server_and_query_table(server_client: ModelarDBServerFlightClien
     print(f"Ingesting data into {table_name}...\n")
     server_client.do_put(table_name, record_batch)
 
-    print("Flushing memory of the edge...\n")
+    print("Flushing memory of the node...\n")
     server_client.do_action("FlushMemory", b"")
 
     print(f"First five rows of {table_name}:")
