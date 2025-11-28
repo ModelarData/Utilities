@@ -43,15 +43,15 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
 
         self.do_get(Ticket(sql))
 
-    def drop_table(self, table_name: str) -> None:
-        """Drop the table with the given name from the server."""
-        self.do_get(Ticket(f"DROP TABLE {table_name}"))
+    def drop_tables(self, table_names: list[str]) -> None:
+        """Drop the given tables in the server."""
+        self.do_get(Ticket(f"DROP TABLE {', '.join(table_names)}"))
 
-    def truncate(self, table_name: str) -> None:
-        """Truncate the table with the given name in the server."""
-        self.do_get(Ticket(f"TRUNCATE {table_name}"))
+    def truncate_tables(self, table_names: list[str]) -> None:
+        """Truncate the given tables in the server."""
+        self.do_get(Ticket(f"TRUNCATE {', '.join(table_names)}"))
 
-    def vacuum(self, table_names: list[str]) -> None:
+    def vacuum_tables(self, table_names: list[str]) -> None:
         """Vacuum the given tables in the server."""
         self.do_get(Ticket(f"VACUUM {', '.join(table_names)}"))
 
