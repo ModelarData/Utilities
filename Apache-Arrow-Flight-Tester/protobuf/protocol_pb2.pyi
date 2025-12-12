@@ -7,50 +7,6 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class ManagerMetadata(_message.Message):
-    __slots__ = ("key", "s3_configuration", "azure_configuration")
-    class S3Configuration(_message.Message):
-        __slots__ = ("endpoint", "bucket_name", "access_key_id", "secret_access_key")
-        ENDPOINT_FIELD_NUMBER: _ClassVar[int]
-        BUCKET_NAME_FIELD_NUMBER: _ClassVar[int]
-        ACCESS_KEY_ID_FIELD_NUMBER: _ClassVar[int]
-        SECRET_ACCESS_KEY_FIELD_NUMBER: _ClassVar[int]
-        endpoint: str
-        bucket_name: str
-        access_key_id: str
-        secret_access_key: str
-        def __init__(self, endpoint: _Optional[str] = ..., bucket_name: _Optional[str] = ..., access_key_id: _Optional[str] = ..., secret_access_key: _Optional[str] = ...) -> None: ...
-    class AzureConfiguration(_message.Message):
-        __slots__ = ("account_name", "access_key", "container_name")
-        ACCOUNT_NAME_FIELD_NUMBER: _ClassVar[int]
-        ACCESS_KEY_FIELD_NUMBER: _ClassVar[int]
-        CONTAINER_NAME_FIELD_NUMBER: _ClassVar[int]
-        account_name: str
-        access_key: str
-        container_name: str
-        def __init__(self, account_name: _Optional[str] = ..., access_key: _Optional[str] = ..., container_name: _Optional[str] = ...) -> None: ...
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    S3_CONFIGURATION_FIELD_NUMBER: _ClassVar[int]
-    AZURE_CONFIGURATION_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    s3_configuration: ManagerMetadata.S3Configuration
-    azure_configuration: ManagerMetadata.AzureConfiguration
-    def __init__(self, key: _Optional[str] = ..., s3_configuration: _Optional[_Union[ManagerMetadata.S3Configuration, _Mapping]] = ..., azure_configuration: _Optional[_Union[ManagerMetadata.AzureConfiguration, _Mapping]] = ...) -> None: ...
-
-class NodeMetadata(_message.Message):
-    __slots__ = ("url", "server_mode")
-    class ServerMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-        __slots__ = ()
-        CLOUD: _ClassVar[NodeMetadata.ServerMode]
-        EDGE: _ClassVar[NodeMetadata.ServerMode]
-    CLOUD: NodeMetadata.ServerMode
-    EDGE: NodeMetadata.ServerMode
-    URL_FIELD_NUMBER: _ClassVar[int]
-    SERVER_MODE_FIELD_NUMBER: _ClassVar[int]
-    url: str
-    server_mode: NodeMetadata.ServerMode
-    def __init__(self, url: _Optional[str] = ..., server_mode: _Optional[_Union[NodeMetadata.ServerMode, str]] = ...) -> None: ...
-
 class TableMetadata(_message.Message):
     __slots__ = ("normal_table", "time_series_table")
     class NormalTableMetadata(_message.Message):

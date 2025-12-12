@@ -1,24 +1,86 @@
-import time
-from random import randrange
-
 import pyarrow
 from pyarrow import flight
 from pyarrow._flight import Result, Ticket
 
-from common import ModelarDBFlightClient, get_time_series_table_schema
+import util
+from wrapper import FlightClientWrapper
 from protobuf import protocol_pb2
 
 
-class ModelarDBServerFlightClient(ModelarDBFlightClient):
+class ModelarDBServerFlightClient(FlightClientWrapper):
     """Functionality for interacting with a ModelarDB server using Apache Arrow Flight."""
 
-    def do_put(self, table_name: str, record_batch: pyarrow.RecordBatch) -> None:
-        """Insert the data in the given record batch into the table with the given table name."""
-        upload_descriptor = flight.FlightDescriptor.for_path(table_name)
-        writer, _ = self.flight_client.do_put(upload_descriptor, record_batch.schema)
+    def list_table_names(self) -> list[str]:
+        """Return the names of the tables in the server."""
+        flights = self.list_flights()
+        return [table_name.decode("utf-8") for table_name in flights[0].descriptor.path]
 
-        writer.write(record_batch)
-        writer.close()
+    def workload_balanced_query(self, query: str) -> None:
+        """
+        Retrieve a cloud node that can execute the given query and execute the query on the node. It is assumed that
+        the cluster has at least one cloud node.
+        """
+        print("Retrieving cloud node that can execute the query...")
+        query_descriptor = flight.FlightDescriptor.for_command(query)
+        flight_info = self.flight_client.get_flight_info(query_descriptor)
+
+        endpoint = flight_info.endpoints[0]
+        cloud_node_url = endpoint.locations[0]
+
+        print(f"Executing query on {cloud_node_url}...")
+        cloud_client = ModelarDBServerFlightClient(cloud_node_url)
+        cloud_client.do_get(endpoint.ticket)
+
+    def create_table(self, table_name: str, columns: list[tuple[str, str]], time_series_table=False) -> None:
+        """
+        Create a table in the server with the given name and columns. Each pair in columns should have the
+        format (column_name, column_type).
+        """
+        create_table = (
+            "CREATE TIME SERIES TABLE" if time_series_table else "CREATE TABLE"
+        )
+        sql = f"{create_table} {table_name}({', '.join([f'{column[0]} {column[1]}' for column in columns])})"
+
+        self.do_get(Ticket(sql))
+
+    def drop_tables(self, table_names: list[str]) -> None:
+        """Drop the given tables in the server."""
+        self.do_get(Ticket(f"DROP TABLE {', '.join(table_names)}"))
+
+    def truncate_tables(self, table_names: list[str]) -> None:
+        """Truncate the given tables in the server."""
+        self.do_get(Ticket(f"TRUNCATE {', '.join(table_names)}"))
+
+    def vacuum_tables(self, table_names: list[str]) -> None:
+        """Vacuum the given tables in the server."""
+        self.do_get(Ticket(f"VACUUM {', '.join(table_names)}"))
+
+    def create_normal_table_from_metadata(self, table_name: str, schema: pyarrow.Schema) -> None:
+        """Create a normal table using the table name and schema."""
+        normal_table_metadata = protocol_pb2.TableMetadata.NormalTableMetadata()
+
+        normal_table_metadata.name = table_name
+        normal_table_metadata.schema = schema.serialize().to_pybytes()
+
+        table_metadata = protocol_pb2.TableMetadata()
+        table_metadata.normal_table.CopyFrom(normal_table_metadata)
+
+        self.do_action("CreateTable", table_metadata.SerializeToString())
+
+    def create_time_series_table_from_metadata(self, table_name: str, schema: pyarrow.Schema, error_bounds: list[
+        protocol_pb2.TableMetadata.TimeSeriesTableMetadata.ErrorBound], generated_columns: list[bytes]) -> None:
+        """Create a time series table using the table name, schema, error bounds, and generated columns."""
+        time_series_table_metadata = protocol_pb2.TableMetadata.TimeSeriesTableMetadata()
+
+        time_series_table_metadata.name = table_name
+        time_series_table_metadata.schema = schema.serialize().to_pybytes()
+        time_series_table_metadata.error_bounds.extend(error_bounds)
+        time_series_table_metadata.generated_column_expressions.extend(generated_columns)
+
+        table_metadata = protocol_pb2.TableMetadata()
+        table_metadata.time_series_table.CopyFrom(time_series_table_metadata)
+
+        self.do_action("CreateTable", table_metadata.SerializeToString())
 
     def get_configuration(self) -> protocol_pb2.Configuration:
         """Get the current configuration of the server."""
@@ -38,62 +100,22 @@ class ModelarDBServerFlightClient(ModelarDBFlightClient):
 
         return self.do_action("UpdateConfiguration", update_configuration.SerializeToString())
 
-    def ingest_into_server_and_query_table(self, table_name: str, num_rows: int) -> None:
-        """
-        Ingest num_rows rows into the table, flush the memory of the server, and query the first five rows of the table.
-        """
-        record_batch = create_record_batch(num_rows)
-
-        print(f"Ingesting data into {table_name}...\n")
-        self.do_put(table_name, record_batch)
-
-        print("Flushing memory of the edge...\n")
-        self.do_action("FlushMemory", b"")
-
-        print(f"First five rows of {table_name}:")
-        self.do_get(Ticket(f"SELECT * FROM {table_name} LIMIT 5"))
-
-
-def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
-    """
-    Create a record batch with num_rows rows of randomly generated data for a table with one timestamp column,
-    three tag columns, and three field columns.
-    """
-    schema = get_time_series_table_schema()
-
-    location = ["aalborg" if i % 2 == 0 else "nibe" for i in range(num_rows)]
-    install_year = ["2021" if i % 2 == 0 else "2022" for i in range(num_rows)]
-    model = ["w72" if i % 2 == 0 else "w73" for i in range(num_rows)]
-
-    timestamp = [round(time.time() * 1000000) + (i * 1000000) for i in range(num_rows)]
-    power_output = [float(randrange(0, 30)) for _ in range(num_rows)]
-    wind_speed = [float(randrange(50, 100)) for _ in range(num_rows)]
-    temperature = [float(randrange(0, 40)) for _ in range(num_rows)]
-
-    return pyarrow.RecordBatch.from_arrays(
-        [
-            location,
-            install_year,
-            model,
-            timestamp,
-            power_output,
-            wind_speed,
-            temperature,
-        ],
-        schema=schema,
-    )
+    def node_type(self) -> str:
+        """Return the type of the node."""
+        node_type = self.do_action("NodeType", b"")
+        return node_type[0].body.to_pybytes().decode("utf-8")
 
 
 if __name__ == "__main__":
     server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999")
     print(f"Node type: {server_client.node_type()}\n")
 
-    server_client.create_test_tables()
-    server_client.ingest_into_server_and_query_table("test_time_series_table_1", 10000)
+    util.create_test_tables(server_client)
+    util.ingest_into_server_and_query_table(server_client, "test_time_series_table_1", 10000)
 
     print("\nCurrent configuration:")
     server_client.update_configuration(protocol_pb2.UpdateConfiguration.Setting.COMPRESSED_RESERVED_MEMORY_IN_BYTES,
                                        10000000)
     print(server_client.get_configuration())
 
-    server_client.clean_up_tables([], "drop")
+    util.clean_up_tables(server_client, [], "drop")

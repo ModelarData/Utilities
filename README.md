@@ -1,9 +1,6 @@
 # Utilities
 Utilities for simplifying development and testing developed in this repository:
 
-- [Apache Arrow Flight manager testing](Apache-Arrow-Flight-Tester/manager.py) is a script written in
-  [Python 3](https://www.python.org/) to test the different endpoints of the ModelarDB manager Apache Arrow Flight API.
-
 - [Apache Arrow Flight server testing](Apache-Arrow-Flight-Tester/server.py) is a script written in
   [Python 3](https://www.python.org/) to test the different endpoints of the ModelarDB server Apache Arrow Flight API.
 
