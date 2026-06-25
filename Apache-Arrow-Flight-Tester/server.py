@@ -28,7 +28,7 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
         cloud_node_url = endpoint.locations[0]
 
         print(f"Executing query on {cloud_node_url}...")
-        cloud_client = ModelarDBServerFlightClient(cloud_node_url)
+        cloud_client = ModelarDBServerFlightClient(cloud_node_url, token=self._token)
         cloud_client.do_get(endpoint.ticket)
 
     def create_table(self, table_name: str, columns: list[tuple[str, str]], time_series_table=False) -> None:
