@@ -1,3 +1,5 @@
+import os
+
 import pyarrow
 from pyarrow import flight
 from pyarrow._flight import Result, Ticket
@@ -107,7 +109,9 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
 
 
 if __name__ == "__main__":
-    server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999")
+    token = os.environ.get("MODELARDB_TOKEN")
+    server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999", token=token)
+
     print(f"Node type: {server_client.node_type()}\n")
 
     util.create_test_tables(server_client)
