@@ -42,9 +42,9 @@ def create_record_batch(num_rows: int) -> pyarrow.RecordBatch:
 def get_time_series_table_schema() -> pyarrow.Schema:
     """Return a schema for a time series table with one timestamp column, three tag columns, and three field columns."""
     return pyarrow.schema([
-        ("location", pyarrow.utf8()),
-        ("install_year", pyarrow.utf8()),
-        ("model", pyarrow.utf8()),
+        ("location", pyarrow.string_view()),
+        ("install_year", pyarrow.string_view()),
+        ("model", pyarrow.string_view()),
         ("timestamp", pyarrow.timestamp("us")),
         ("power_output", pyarrow.float32()),
         ("wind_speed", pyarrow.float32()),
@@ -93,7 +93,7 @@ def create_test_tables_from_metadata(server_client: ModelarDBServerFlightClient)
     normal_table_schema = pyarrow.schema([
         ("timestamp", pyarrow.timestamp("us")),
         ("values", pyarrow.float32()),
-        ("metadata", pyarrow.utf8())
+        ("metadata", pyarrow.string_view())
     ])
 
     server_client.create_normal_table_from_metadata("test_table_1", normal_table_schema)

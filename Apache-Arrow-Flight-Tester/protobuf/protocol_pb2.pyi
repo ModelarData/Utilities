@@ -49,24 +49,28 @@ class TableMetadata(_message.Message):
     def __init__(self, normal_table: _Optional[_Union[TableMetadata.NormalTableMetadata, _Mapping]] = ..., time_series_table: _Optional[_Union[TableMetadata.TimeSeriesTableMetadata, _Mapping]] = ...) -> None: ...
 
 class Configuration(_message.Message):
-    __slots__ = ("multivariate_reserved_memory_in_bytes", "uncompressed_reserved_memory_in_bytes", "compressed_reserved_memory_in_bytes", "transfer_batch_size_in_bytes", "transfer_time_in_seconds", "ingestion_threads", "compression_threads", "writer_threads")
+    __slots__ = ("multivariate_reserved_memory_in_bytes", "uncompressed_reserved_memory_in_bytes", "compressed_reserved_memory_in_bytes", "transfer_batch_size_in_bytes", "transfer_time_in_seconds", "segment_size_threshold_in_bytes", "ingestion_threads", "compression_threads", "writer_threads", "wal_enabled")
     MULTIVARIATE_RESERVED_MEMORY_IN_BYTES_FIELD_NUMBER: _ClassVar[int]
     UNCOMPRESSED_RESERVED_MEMORY_IN_BYTES_FIELD_NUMBER: _ClassVar[int]
     COMPRESSED_RESERVED_MEMORY_IN_BYTES_FIELD_NUMBER: _ClassVar[int]
     TRANSFER_BATCH_SIZE_IN_BYTES_FIELD_NUMBER: _ClassVar[int]
     TRANSFER_TIME_IN_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    SEGMENT_SIZE_THRESHOLD_IN_BYTES_FIELD_NUMBER: _ClassVar[int]
     INGESTION_THREADS_FIELD_NUMBER: _ClassVar[int]
     COMPRESSION_THREADS_FIELD_NUMBER: _ClassVar[int]
     WRITER_THREADS_FIELD_NUMBER: _ClassVar[int]
+    WAL_ENABLED_FIELD_NUMBER: _ClassVar[int]
     multivariate_reserved_memory_in_bytes: int
     uncompressed_reserved_memory_in_bytes: int
     compressed_reserved_memory_in_bytes: int
     transfer_batch_size_in_bytes: int
     transfer_time_in_seconds: int
+    segment_size_threshold_in_bytes: int
     ingestion_threads: int
     compression_threads: int
     writer_threads: int
-    def __init__(self, multivariate_reserved_memory_in_bytes: _Optional[int] = ..., uncompressed_reserved_memory_in_bytes: _Optional[int] = ..., compressed_reserved_memory_in_bytes: _Optional[int] = ..., transfer_batch_size_in_bytes: _Optional[int] = ..., transfer_time_in_seconds: _Optional[int] = ..., ingestion_threads: _Optional[int] = ..., compression_threads: _Optional[int] = ..., writer_threads: _Optional[int] = ...) -> None: ...
+    wal_enabled: bool
+    def __init__(self, multivariate_reserved_memory_in_bytes: _Optional[int] = ..., uncompressed_reserved_memory_in_bytes: _Optional[int] = ..., compressed_reserved_memory_in_bytes: _Optional[int] = ..., transfer_batch_size_in_bytes: _Optional[int] = ..., transfer_time_in_seconds: _Optional[int] = ..., segment_size_threshold_in_bytes: _Optional[int] = ..., ingestion_threads: _Optional[int] = ..., compression_threads: _Optional[int] = ..., writer_threads: _Optional[int] = ..., wal_enabled: bool = ...) -> None: ...
 
 class UpdateConfiguration(_message.Message):
     __slots__ = ("setting", "new_value")
@@ -77,11 +81,13 @@ class UpdateConfiguration(_message.Message):
         COMPRESSED_RESERVED_MEMORY_IN_BYTES: _ClassVar[UpdateConfiguration.Setting]
         TRANSFER_BATCH_SIZE_IN_BYTES: _ClassVar[UpdateConfiguration.Setting]
         TRANSFER_TIME_IN_SECONDS: _ClassVar[UpdateConfiguration.Setting]
+        SEGMENT_SIZE_THRESHOLD_IN_BYTES: _ClassVar[UpdateConfiguration.Setting]
     MULTIVARIATE_RESERVED_MEMORY_IN_BYTES: UpdateConfiguration.Setting
     UNCOMPRESSED_RESERVED_MEMORY_IN_BYTES: UpdateConfiguration.Setting
     COMPRESSED_RESERVED_MEMORY_IN_BYTES: UpdateConfiguration.Setting
     TRANSFER_BATCH_SIZE_IN_BYTES: UpdateConfiguration.Setting
     TRANSFER_TIME_IN_SECONDS: UpdateConfiguration.Setting
+    SEGMENT_SIZE_THRESHOLD_IN_BYTES: UpdateConfiguration.Setting
     SETTING_FIELD_NUMBER: _ClassVar[int]
     NEW_VALUE_FIELD_NUMBER: _ClassVar[int]
     setting: UpdateConfiguration.Setting

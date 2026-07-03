@@ -1,3 +1,5 @@
+import os
+
 import pyarrow
 from pyarrow import flight
 from pyarrow._flight import Result, Ticket
@@ -28,7 +30,7 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
         cloud_node_url = endpoint.locations[0]
 
         print(f"Executing query on {cloud_node_url}...")
-        cloud_client = ModelarDBServerFlightClient(cloud_node_url)
+        cloud_client = ModelarDBServerFlightClient(cloud_node_url, token=self._token)
         cloud_client.do_get(endpoint.ticket)
 
     def create_table(self, table_name: str, columns: list[tuple[str, str]], time_series_table=False) -> None:
@@ -54,6 +56,10 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
     def vacuum_tables(self, table_names: list[str]) -> None:
         """Vacuum the given tables in the server."""
         self.do_get(Ticket(f"VACUUM {', '.join(table_names)}"))
+
+    def optimize_tables(self, table_names: list[str]) -> None:
+        """Optimize the given tables in the server."""
+        self.do_get(Ticket(f"OPTIMIZE {', '.join(table_names)}"))
 
     def create_normal_table_from_metadata(self, table_name: str, schema: pyarrow.Schema) -> None:
         """Create a normal table using the table name and schema."""
@@ -107,7 +113,9 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
 
 
 if __name__ == "__main__":
-    server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999")
+    token = os.environ.get("MODELARDB_TOKEN")
+    server_client = ModelarDBServerFlightClient("grpc://127.0.0.1:9999", token=token)
+
     print(f"Node type: {server_client.node_type()}\n")
 
     util.create_test_tables(server_client)

@@ -5,11 +5,36 @@ from pyarrow import flight, Schema
 from pyarrow._flight import FlightInfo, ActionType, Result, Ticket
 
 
+class _BearerTokenMiddlewareFactory(flight.ClientMiddlewareFactory):
+    """Creates middleware that attaches a Bearer token to every outgoing call."""
+
+    def __init__(self, token: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._token = token
+
+    def start_call(self, _info) -> flight.ClientMiddleware:
+        return _BearerTokenMiddleware(self._token)
+
+
+class _BearerTokenMiddleware(flight.ClientMiddleware):
+    """Adds 'authorization: Bearer <token>' to the outgoing request headers."""
+
+    def __init__(self, token: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._token = token
+
+    def sending_headers(self) -> dict[str, str]:
+        return {"authorization": f"Bearer {self._token}"}
+
+
 class FlightClientWrapper:
     """Wrapper around the FlightClient class to simplify interaction with an Apache Arrow Flight server."""
 
-    def __init__(self, location: str):
-        self.flight_client = flight.FlightClient(location)
+    def __init__(self, location: str, token: str | None = None):
+        self._token = token
+
+        middleware = [_BearerTokenMiddlewareFactory(token)] if token else []
+        self.flight_client = flight.FlightClient(location, middleware=middleware)
 
     def list_flights(self) -> list[FlightInfo]:
         """Wrapper around the list_flights method of the FlightClient class."""
