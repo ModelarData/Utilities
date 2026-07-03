@@ -57,6 +57,10 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
         """Vacuum the given tables in the server."""
         self.do_get(Ticket(f"VACUUM {', '.join(table_names)}"))
 
+    def optimize_tables(self, table_names: list[str]) -> None:
+        """Optimize the given tables in the server."""
+        self.do_get(Ticket(f"OPTIMIZE {', '.join(table_names)}"))
+
     def create_normal_table_from_metadata(self, table_name: str, schema: pyarrow.Schema) -> None:
         """Create a normal table using the table name and schema."""
         normal_table_metadata = protocol_pb2.TableMetadata.NormalTableMetadata()
