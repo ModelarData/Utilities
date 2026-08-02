@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env {bash,zsh}
 set -e
 
 
@@ -16,7 +16,7 @@ start_minio() {
     MINIO_FOLDER=$(mktemp -d)
     minio server "$MINIO_FOLDER" &
     MINIO_PID=$!
-    sleep 1 # Simple way to ensure azurite has time to start.
+    sleep 1 # Simple way to ensure Minio has time to start.
     mcli alias set local http://127.0.0.1:9000 minioadmin minioadmin
     mcli mb local/modelardb
 }
@@ -24,8 +24,9 @@ start_minio() {
 stop_minio() {
     if [ ! -z "$MINIO_FOLDER" ]
     then
-	rm -rf "$MINIO_FOLDER"
 	kill "$MINIO_PID"
+	sleep 1 # Simple way to ensure Minio has time to write.
+	rm -rf "$MINIO_FOLDER"
     fi
 }
 
@@ -39,7 +40,7 @@ start_azurite() {
     AZURITE_FOLDER=$(mktemp -d)
     azurite -l "$AZURITE_FOLDER" --silent --skipApiVersionCheck &
     AZURITE_PID=$!
-    sleep 1 # Simple way to ensure azurite has time to start.
+    sleep 1 # Simple way to ensure Azurite has time to start.
     az storage container create -n modelardb --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;'
 }
 
@@ -47,21 +48,22 @@ stop_azurite() {
     if [ ! -z "$AZURITE_FOLDER" ]
     then
 	kill "$AZURITE_PID"
+	sleep 1 # Simple way to ensure Azurite has time to write.
 	rm -rf "$AZURITE_FOLDER"
     fi
 }
 
 print_error_message() {
-    printf "\033[1;31mERROR: \033[39m$1\n"
+    printf "\033[1;31mERROR: \033[39m%s\n" $1
 }
 
 print_arrow_message() {
-  printf "\033[1;92m==> \033[39m$1 \033[m\n"
+  printf "\033[1;92m==> \033[39m%s \033[m\n" $1
 }
 
 print_arrow_message_and_run() {
     print_arrow_message "$1"
-    $1
+    "$1"
     sleep 1
     echo
 }
@@ -83,8 +85,7 @@ check_for_dependencies() {
 # Main.
 check_for_dependencies
 
-trap stop_minio EXIT
-trap stop_azurite EXIT
+trap 'stop_minio; stop_azurite' EXIT
 
 print_arrow_message_and_run "start_minio"
 print_arrow_message_and_run "start_azurite"
