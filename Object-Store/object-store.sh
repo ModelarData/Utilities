@@ -4,15 +4,39 @@ set -e
 
 
 # Variables.
-MINIO_FOLDER=
-MINIO_PID=
 AZURITE_FOLDER=
 AZURITE_PID=
+MINIO_FOLDER=
+MINIO_PID=
 
 
 # Functions.
-# API: http://127.0.0.1:9000
-# WebUI: http://127.0.0.1:????? # Port is randomized.
+# Azurite Blob: http://127.0.0.1:10000.
+# Azurite Queue: http://127.0.0.1:10001.
+# Azurite Table: http://127.0.0.1:10002.
+start_azurite() {
+    print_arrow_message "Start Azurite"
+    AZURITE_FOLDER=$(mktemp -d)
+    azurite -l "$AZURITE_FOLDER" --silent --skipApiVersionCheck &
+    AZURITE_PID=$!
+    sleep 1 # Simple way to ensure Azurite has time to start.
+    az storage container create -n modelardb --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;'
+    echo
+}
+
+stop_azurite() {
+    print_arrow_message "Stop Azurite"
+    if [ ! -z "$AZURITE_FOLDER" ]
+    then
+	kill "$AZURITE_PID"
+	sleep 1 # Simple way to ensure Azurite has time to write.
+	rm -rf "$AZURITE_FOLDER"
+    fi
+    echo
+}
+
+# Minio API: http://127.0.0.1:9000.
+# Minio WebUI: http://127.0.0.1:{random}.
 start_minio() {
     print_arrow_message "Start Minio"
     MINIO_FOLDER=$(mktemp -d)
@@ -31,33 +55,6 @@ stop_minio() {
 	kill "$MINIO_PID"
 	sleep 1 # Simple way to ensure Minio has time to write.
 	rm -rf "$MINIO_FOLDER"
-    fi
-    echo
-}
-
-# Azurite Blob service is starting at http://127.0.0.1:10000
-# Azurite Blob service is successfully listening at http://127.0.0.1:10000
-# Azurite Queue service is starting at http://127.0.0.1:10001
-# Azurite Queue service is successfully listening at http://127.0.0.1:10001
-# Azurite Table service is starting at http://127.0.0.1:10002
-# Azurite Table service is successfully listening at http://127.0.0.1:10002
-start_azurite() {
-    print_arrow_message "Start Azurite"
-    AZURITE_FOLDER=$(mktemp -d)
-    azurite -l "$AZURITE_FOLDER" --silent --skipApiVersionCheck &
-    AZURITE_PID=$!
-    sleep 1 # Simple way to ensure Azurite has time to start.
-    az storage container create -n modelardb --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;'
-    echo
-}
-
-stop_azurite() {
-    print_arrow_message "Stop Azurite"
-    if [ ! -z "$AZURITE_FOLDER" ]
-    then
-	kill "$AZURITE_PID"
-	sleep 1 # Simple way to ensure Azurite has time to write.
-	rm -rf "$AZURITE_FOLDER"
     fi
     echo
 }
@@ -87,10 +84,10 @@ check_for_dependencies() {
 # Main.
 check_for_dependencies
 
-trap 'stop_minio; stop_azurite' EXIT
+trap 'stop_azurite; stop_minio' EXIT
 
-start_minio
 start_azurite
+start_minio
 
 print_arrow_message "Waiting"
 echo "Started object stores, press enter to stop."
