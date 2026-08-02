@@ -28,6 +28,11 @@ Utilities for simplifying development and testing developed in this repository:
    with the same schema and computes multiple metrics about how ModelarDB represents the ingested data set, e.g., the
    amount of space needed.
 
+- [Object store management script](Object-Store/object-store.sh) is a script written in [Bash](https://www.gnu.org/software/bash/)
+  and [ZSH](https://www.zsh.org/) shell script to simplify running tests that use Azurite and/or Minio. The scripts starts Azurite
+  and Minio that use temporary folder for storage, create a container and bucket named `modelardb`, pause until the user press
+  the `Enter` key, and kills Azurite and Minio and deletes the temporary folders they used storage when the script exit.
+
 ## Other Tools
 Utilities for simplifying development and testing developed by other developers:
 
