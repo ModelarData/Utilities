@@ -24,9 +24,14 @@ Utilities for simplifying development and testing developed in this repository:
 
 - [ModelarDB validate compression script](ModelarDB-Validate-Compression/main.py) is a script written in 
   [Python 3](https://www.python.org/) to compress a data set for a set of error bounds and validate that all values are
-   within the error bounds and compute various metrics. For each error bound, the script ingests Apache Parquet files
-   with the same schema and computes multiple metrics about how ModelarDB represents the ingested data set, e.g., the
-   amount of space needed.
+  within the error bounds and compute various metrics. For each error bound, the script ingests Apache Parquet files
+  with the same schema and computes multiple metrics about how ModelarDB represents the ingested data set, e.g., the
+  amount of space needed.
+
+- [Object store management script](Object-Store/object-store.sh) is a shell script written for [Bash](https://www.gnu.org/software/bash/)
+  and [ZSH](https://www.zsh.org/) to simplify running tests that use Azurite and/or MinIO. The script starts Azurite and
+  MinIO using temporary folders for storage and creates a container and bucket named `modelardb`, waits for the user to
+  press the `Enter` key, then stops Azurite and MinIO and deletes the temporary storage folders when the script exits.
 
 ## Other Tools
 Utilities for simplifying development and testing developed by other developers:
