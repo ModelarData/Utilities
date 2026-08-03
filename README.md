@@ -29,9 +29,9 @@ Utilities for simplifying development and testing developed in this repository:
   amount of space needed.
 
 - [Object store management script](Object-Store/object-store.sh) is a shell script written for [Bash](https://www.gnu.org/software/bash/)
-  and [ZSH](https://www.zsh.org/) to simplify running tests that use Azurite and/or Minio. The script starts Azurite and
-  Minio using temporary folders for storage and creates a container and bucket named `modelardb`, waits for the user to
-  press the `Enter` key, then stops Azurite and Minio and deletes the temporary storage folders when the script exits.
+  and [ZSH](https://www.zsh.org/) to simplify running tests that use Azurite and/or MinIO. The script starts Azurite and
+  MinIO using temporary folders for storage and creates a container and bucket named `modelardb`, waits for the user to
+  press the `Enter` key, then stops Azurite and MinIO and deletes the temporary storage folders when the script exits.
 
 ## Other Tools
 Utilities for simplifying development and testing developed by other developers:

@@ -1,4 +1,4 @@
-# This Bash/ZSH script simplify running tests that use Azurite and/or Minio.
+# This Bash/ZSH script simplify running tests that use Azurite and/or MinIO.
 # It purposely does not have a #! as it is written to work with Bash and ZSH.
 set -e
 
@@ -35,25 +35,25 @@ stop_azurite() {
     echo
 }
 
-# Minio API: http://127.0.0.1:9000.
-# Minio WebUI: http://127.0.0.1:{random}.
+# MinIO API: http://127.0.0.1:9000.
+# MinIO WebUI: http://127.0.0.1:{random}.
 start_minio() {
-    print_arrow_message "Start Minio"
+    print_arrow_message "Start MinIO"
     MINIO_FOLDER=$(mktemp -d)
     minio server "$MINIO_FOLDER" &
     MINIO_PID=$!
-    sleep 1 # Simple way to ensure Minio has time to start.
+    sleep 1 # Simple way to ensure MinIO has time to start.
     mcli alias set local http://127.0.0.1:9000 minioadmin minioadmin
     mcli mb local/modelardb
     echo
 }
 
 stop_minio() {
-    print_arrow_message "Stop Minio"
+    print_arrow_message "Stop MinIO"
     if [ ! -z "$MINIO_FOLDER" ]
     then
 	kill "$MINIO_PID"
-	sleep 1 # Simple way to ensure Minio has time to write.
+	sleep 1 # Simple way to ensure MinIO has time to write.
 	rm -rf "$MINIO_FOLDER"
     fi
     echo
