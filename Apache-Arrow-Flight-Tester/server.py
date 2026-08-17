@@ -120,6 +120,15 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
 
         return [node for node in cluster_nodes.nodes]
 
+    def node_metrics(self) -> protocol_pb2.NodeMetrics:
+        """Return the current metrics of the node."""
+        response = self.do_action("NodeMetrics", b"")
+
+        node_metrics = protocol_pb2.NodeMetrics()
+        node_metrics.ParseFromString(response[0].body.to_pybytes())
+
+        return node_metrics
+
 
 if __name__ == "__main__":
     token = os.environ.get("MODELARDB_TOKEN")
