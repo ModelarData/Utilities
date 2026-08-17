@@ -111,6 +111,15 @@ class ModelarDBServerFlightClient(FlightClientWrapper):
         node_type = self.do_action("NodeType", b"")
         return node_type[0].body.to_pybytes().decode("utf-8")
 
+    def list_nodes(self) -> list[protocol_pb2.NodeMetadata]:
+        """Return the metadata of the nodes in the cluster."""
+        response = self.do_action("ListNodes", b"")
+
+        cluster_nodes = protocol_pb2.ClusterNodes()
+        cluster_nodes.ParseFromString(response[0].body.to_pybytes())
+
+        return [node for node in cluster_nodes.nodes]
+
 
 if __name__ == "__main__":
     token = os.environ.get("MODELARDB_TOKEN")
