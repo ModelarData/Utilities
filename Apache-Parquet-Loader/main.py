@@ -1,44 +1,18 @@
+import glob
 import os
 import sys
-import glob
 
 import pyarrow
-from pyarrow import parquet
-from pyarrow import flight
-from pyarrow import compute
+from pyarrow import compute, flight, parquet
 
 
 # Helper Functions.
 def table_exists(flight_client, table_name):
-    tables = map(lambda flight: flight.descriptor.path, flight_client.list_flights())
+    tables = (flight.descriptor.path for flight in flight_client.list_flights())
     return [bytes(table_name, "UTF-8")] in tables
 
 
-def create_time_series_table(flight_client, table_name, schema, error_bound):
-    # Construct the CREATE TIME SERIES TABLE string with column names
-    # quoted to also support special characters in column names such
-    # as spaces and punctuation.
-    columns = []
-    for field in schema:
-        if field.type == pyarrow.timestamp("us"):
-            columns.append(f"`{field.name}` TIMESTAMP")
-        elif field.type == pyarrow.float32():
-            columns.append(f"`{field.name}` FIELD({error_bound}%)")
-        elif field.type == pyarrow.string():
-            columns.append(f"`{field.name}` TAG")
-        else:
-            raise ValueError(f"Unsupported Data Type: {field.type}")
-
-    sql = f"CREATE TIME SERIES TABLE {table_name} ({', '.join(columns)})"
-
-    # Execute the CREATE TIME SERIES TABLE command.
-    ticket = flight.Ticket(str.encode(sql))
-    result = flight_client.do_get(ticket)
-    return list(result)
-
-
 def read_parquet_file_or_folder(path):
-    # Read Apache Parquet file or folder.
     arrow_table = parquet.read_table(path)
 
     # Ensure the schema only uses supported types.
@@ -60,13 +34,61 @@ def read_parquet_file_or_folder(path):
             # Ensure timestamps are timestamp[us] as others are not supported.
             column = compute.cast(column, pyarrow.timestamp("us"))
             fields.append(pyarrow.field(field.name, pyarrow.timestamp("us")))
-        else:
+        elif field.type in [pyarrow.float32(), pyarrow.string, pyarrow.large_string, pyarrow.string_view]:
+            # These data types require no conversion before being ingested.
             fields.append(field)
+        else:
+            raise ValueError(f"Unsupported Data Type: {field.type}")
 
         arrays.append(column)
 
     # Create a new table with the supported types.
     return pyarrow.Table.from_arrays(arrays, schema=pyarrow.schema(fields))
+
+
+def create_normal_table_sql(table_name, schema):
+    # Construct the CREATE TABLE string with column names to also support
+    # special characters in column names such as spaces and punctuation.
+    # https://datafusion.apache.org/user-guide/sql/data_types.html
+    columns = []
+    for field in schema:
+        if field.type == pyarrow.timestamp("us"):
+            columns.append(f"`{field.name}` TIMESTAMP")
+        elif field.type == pyarrow.float32():
+            columns.append(f"`{field.name}` REAL")
+        elif field.type == pyarrow.string():
+            columns.append(f"`{field.name}` TEXT")
+        else:
+            raise ValueError(f"Unsupported Data Type: {field.type}")
+
+    return f"CREATE TABLE {table_name} ({', '.join(columns)})"
+
+
+def create_time_series_table_sql(table_name, schema, error_bound):
+    # Construct the CREATE TIME SERIES TABLE string with column names
+    # quoted to also support special characters in column names such
+    # as spaces and punctuation.
+    columns = []
+    for field in schema:
+        if field.type == pyarrow.timestamp("us"):
+            columns.append(f"`{field.name}` TIMESTAMP")
+        elif field.type == pyarrow.float32():
+            columns.append(f"`{field.name}` FIELD({error_bound}%)")
+        elif field.type == pyarrow.string():
+            columns.append(f"`{field.name}` TAG")
+        else:
+            # This should never trigger as read_parquet_file_or_folder()
+            # normalcies the schema of Apache Parquet files, but it is kept to
+            # simplify debugging during development of the script itself.
+            raise ValueError(f"Unsupported Data Type: {field.type}")
+
+    return f"CREATE TIME SERIES TABLE {table_name} ({', '.join(columns)})"
+
+
+def create_table(flight_client, sql):
+    ticket = flight.Ticket(str.encode(sql))
+    result = flight_client.do_get(ticket)
+    return list(result)
 
 
 def do_put_arrow_table(flight_client, table_name, arrow_table):
@@ -78,29 +100,40 @@ def do_put_arrow_table(flight_client, table_name, arrow_table):
 
 # Main Function.
 if __name__ == "__main__":
-    if len(sys.argv) != 4 and len(sys.argv) != 5:
+    if len(sys.argv) != 5 and len(sys.argv) != 6:
         print(
-            f"usage: {sys.argv[0]} host time_series_table_name parquet_file_or_folder [relative_error_bound]"
+            f"usage: {sys.argv[0]} host table_type table_name parquet_file_or_folder [relative_error_bound]"
         )
         sys.exit(1)
 
     flight_client = flight.FlightClient(f"grpc://{sys.argv[1]}")
-    table_name = sys.argv[2]
-    error_bound = sys.argv[4] if len(sys.argv) == 5 else "0.0"
+    table_type = sys.argv[2]
+    table_name = sys.argv[3]
+    parquet_path = sys.argv[4]
+    error_bound = sys.argv[5] if len(sys.argv) == 6 else "0.0"
 
-    if os.path.isdir(sys.argv[3]):
-        parquet_files = glob.glob(sys.argv[3] + os.sep + "*.parquet")
+    if os.path.isdir(parquet_path):
+        parquet_files = glob.glob(parquet_path + os.sep + "*.parquet")
         parquet_files.sort()  # Makes ingestion order more intuitive.
-    elif os.path.isfile(sys.argv[3]):
-        parquet_files = [sys.argv[3]]
+    elif os.path.isfile(parquet_path):
+        parquet_files = [parquet_path]
     else:
         raise ValueError("parquet_file_or_folder is not a file or a folder")
 
+    # Assumes all of the files in the folder uses the same schema.
     arrow_table = read_parquet_file_or_folder(parquet_files[0])
     if not table_exists(flight_client, table_name):
-        create_time_series_table(
-            flight_client, table_name, arrow_table.schema, error_bound
-        )
+        match table_type:
+            case "normal":
+                sql = create_normal_table_sql(table_name, arrow_table.schema)
+                create_table(flight_client, sql)
+            case "time_series":
+                sql = create_time_series_table_sql(
+                    table_name, arrow_table.schema, error_bound
+                )
+                create_table(flight_client, sql)
+            case _:
+                raise ValueError("table_type is not normal or time_series")
 
     for index, parquet_file in enumerate(parquet_files):
         print(f"- Processing {parquet_file} ({index + 1} of {len(parquet_files)})")
