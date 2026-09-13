@@ -22,21 +22,19 @@ def read_parquet_file_or_folder(path):
     for field in arrow_table.schema:
         column = arrow_table[field.name]
 
-        if field.type in [pyarrow.float16(), pyarrow.float64()]:
-            # Ensure fields are float32 as others are not supported.
-            column = compute.cast(column, pyarrow.float32())
-            fields.append(pyarrow.field(field.name, pyarrow.float32()))
-        elif field.type in [
-            pyarrow.timestamp("s"),
-            pyarrow.timestamp("ms"),
-            pyarrow.timestamp("ns"),
-        ]:
-            # Ensure timestamps are timestamp[us] as others are not supported.
+        if field.type in [pyarrow.timestamp("s"), pyarrow.timestamp("ms"),
+                          pyarrow.timestamp("ns"), pyarrow.timestamp("us")]:
+            # Ensure timestamps are timestamp[us] as others are not supported by modelardbd.
             column = compute.cast(column, pyarrow.timestamp("us"))
             fields.append(pyarrow.field(field.name, pyarrow.timestamp("us")))
-        elif field.type in [pyarrow.float32(), pyarrow.string, pyarrow.large_string, pyarrow.string_view]:
-            # These data types require no conversion before being ingested.
-            fields.append(field)
+        elif field.type in [pyarrow.float16(), pyarrow.float32(), pyarrow.float64()]:
+            # Ensure fields are float32 as others are not supported by modelardbd.
+            column = compute.cast(column, pyarrow.float32())
+            fields.append(pyarrow.field(field.name, pyarrow.float32()))
+        elif field.type in [pyarrow.string(), pyarrow.large_string(), pyarrow.string_view()]:
+            # Ensure tags are strings as others are not supported by this loader.
+            column = compute.cast(column, pyarrow.string())
+            fields.append(pyarrow.field(field.name, pyarrow.string()))
         else:
             raise ValueError(f"Unsupported Data Type: {field.type}")
 
@@ -78,8 +76,8 @@ def create_time_series_table_sql(table_name, schema, error_bound):
             columns.append(f"`{field.name}` TAG")
         else:
             # This should never trigger as read_parquet_file_or_folder()
-            # normalcies the schema of Apache Parquet files, but it is kept to
-            # simplify debugging during development of the script itself.
+            # normalizes the schema of Apache Parquet files, but it is kept
+            # to simplify debugging during development of the script itself.
             raise ValueError(f"Unsupported Data Type: {field.type}")
 
     return f"CREATE TIME SERIES TABLE {table_name} ({', '.join(columns)})"
