@@ -33,8 +33,8 @@ def read_parquet_file_or_folder(path):
             fields.append(pyarrow.field(field.name, pyarrow.float32()))
         elif field.type in [pyarrow.string(), pyarrow.large_string(), pyarrow.string_view()]:
             # Ensure tags are strings as others are not supported by this loader.
-            column = compute.cast(column, pyarrow.string())
-            fields.append(pyarrow.field(field.name, pyarrow.string()))
+            column = compute.cast(column, pyarrow.string_view())
+            fields.append(pyarrow.field(field.name, pyarrow.string_view()))
         else:
             raise ValueError(f"Unsupported Data Type: {field.type}")
 
@@ -54,7 +54,7 @@ def create_normal_table_sql(table_name, schema):
             columns.append(f"`{field.name}` TIMESTAMP")
         elif field.type == pyarrow.float32():
             columns.append(f"`{field.name}` REAL")
-        elif field.type == pyarrow.string():
+        elif field.type == pyarrow.string_view():
             columns.append(f"`{field.name}` TEXT")
         else:
             raise ValueError(f"Unsupported Data Type: {field.type}")
@@ -72,7 +72,7 @@ def create_time_series_table_sql(table_name, schema, error_bound):
             columns.append(f"`{field.name}` TIMESTAMP")
         elif field.type == pyarrow.float32():
             columns.append(f"`{field.name}` FIELD({error_bound}%)")
-        elif field.type == pyarrow.string():
+        elif field.type == pyarrow.string_view():
             columns.append(f"`{field.name}` TAG")
         else:
             # This should never trigger as read_parquet_file_or_folder()
