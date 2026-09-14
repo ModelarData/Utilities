@@ -15,6 +15,7 @@ from pyarrow import flight
 # Configuration.
 MODELARDB_REPOSITORY = "https://github.com/ModelarData/ModelarDB-RS.git"
 UTILITIES_REPOSITORY = "https://github.com/ModelarData/Utilities.git"
+TABLE_TYPE = "time_series"
 TABLE_NAME = "evaluate"
 STDOUT = subprocess.PIPE
 STDERR = subprocess.PIPE
@@ -72,6 +73,7 @@ def ingest_test_data(utilities_loader, test_data, error_bound_str):
             "python3",
             utilities_loader,
             "127.0.0.1:9999",
+            TABLE_TYPE,
             TABLE_NAME,
             test_data,
             error_bound_str,

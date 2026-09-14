@@ -13,6 +13,7 @@ import subprocess
 # Configuration.
 MODELARDB_REPOSITORY = "https://github.com/ModelarData/ModelarDB-RS.git"
 UTILITIES_REPOSITORY = "https://github.com/ModelarData/Utilities.git"
+TABLE_TYPE = "time_series"
 TABLE_NAME = "evaluate_changes"
 STDOUT = subprocess.PIPE
 STDERR = subprocess.PIPE
@@ -113,7 +114,7 @@ def print_stream(output_stream):
 def ingest_test_data(utilities_loader, test_data):
     start_time = time.time()
     process = subprocess.run(
-        ["python3", utilities_loader, "127.0.0.1:9999", TABLE_NAME, test_data],
+        ["python3", utilities_loader, "127.0.0.1:9999", TABLE_TYPE, TABLE_NAME, test_data],
         stdout=STDOUT,
         stderr=STDERR,
     )
