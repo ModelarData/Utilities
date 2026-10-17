@@ -1,6 +1,7 @@
 import glob
 import os
 import sys
+from pathlib import Path
 
 import pyarrow
 from pyarrow import compute, flight, parquet
@@ -39,6 +40,12 @@ def read_parquet_file_or_folder(path):
             raise ValueError(f"Unsupported Data Type: {field.type}")
 
         arrays.append(column)
+
+    # Add the name of the read Parquet file as a column. Data sets often
+    # contain time series from multiple sources stored in separate files.
+    arrays.append(pyarrow.array([Path(path).stem] * arrow_table.num_rows,
+                                type=pyarrow.string_view()))
+    fields.append(pyarrow.field("file_name", pyarrow.string_view()))
 
     # Create a new table with the supported types.
     return pyarrow.Table.from_arrays(arrays, schema=pyarrow.schema(fields))
